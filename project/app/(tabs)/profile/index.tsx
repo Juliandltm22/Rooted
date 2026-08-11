@@ -19,8 +19,16 @@ export default function Profile() {
       return
     }
     setLogoutVisible(false);
-    setNotificationVisible(false);
     router.replace('/(auth)/welcome')
+  };
+
+  const handleNotification = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      Alert.alert(error.message)
+      return
+    }
+    setNotificationVisible(false);
   };
 
   return (
@@ -149,7 +157,7 @@ export default function Profile() {
         <NotificationModal
           visible={notificationVisible}
           onClose={() => setNotificationVisible(false)}
-          onConfirm={handleLogout}
+          onConfirm={handleNotification}
         />
       </ScrollView>
     </View>
