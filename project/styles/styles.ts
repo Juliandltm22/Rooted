@@ -498,7 +498,7 @@ export const appStyles = StyleSheet.create({
   },
   moodContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 13,
     gap: 10,
     // backgroundColor: '#a9cf58',
   },
@@ -509,15 +509,13 @@ export const appStyles = StyleSheet.create({
     rowGap: 12,
   },
   moodOption: {
-    width: '48%',
+    width: '47%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 30,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
     borderWidth: 1.5,
     borderColor: '#37423D',
   },
@@ -525,9 +523,21 @@ export const appStyles = StyleSheet.create({
     opacity: 1,
     backgroundColor: '#DDE7C7',
   },
+  moodLabel: {
+    fontFamily: 'Harmattan-Regular',
+    fontSize: 18,
+    color: '#37423D',
+    alignSelf: 'center',
+  },
   moodImage: {
     width: 50,
     height: 50,
+  },
+  userInputContainer: {
+    // backgroundColor: '#ffd07e',
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    gap: 10,
   },
   noteInput: {
     backgroundColor: '#FFFFFF',
@@ -542,7 +552,7 @@ export const appStyles = StyleSheet.create({
   },
   sleepContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 10,
     gap: 10,
     // backgroundColor: '#341b39',
   },
@@ -571,6 +581,50 @@ export const appStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     // backgroundColor: '#F335D6'
+  },
+  nextContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 120,
+    // backgroundColor: '#F335D6'
+  },
+
+  nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    width: 210,
+    height: 50,
+    backgroundColor: '#DDE7C7',
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: '#37423D',
+  },
+
+  nextButtonDisabled: {
+    backgroundColor: '#FFFFFF',
+    opacity: 0.3,
+  },
+
+  nextButtonText: {
+    fontFamily: 'Raleway-SemiBold',
+    fontSize: 16,
+    color: '#37423D',
+  },
+  agentBackgroundContainer: {
+     flex: 1,
+    backgroundColor: '#D5B9B2'
+  },
+  agentHero: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#D5B9B2',
+    paddingTop: 60,
+    paddingHorizontal: 20,
   },
   // ---------------------------------
 })

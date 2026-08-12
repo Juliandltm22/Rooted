@@ -1,7 +1,8 @@
 import { Text, View, Pressable, Image } from 'react-native';
 import { appStyles } from '@/styles/styles';
 import { useState } from 'react';
-import { Minus, Plus } from 'lucide-react-native';
+import { router } from "expo-router";
+import { Minus, Plus, ArrowRight } from 'lucide-react-native';
 
  const MOOD_OPTIONS = [
   {
@@ -38,7 +39,7 @@ import { Minus, Plus } from 'lucide-react-native';
 
 export default function Care() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [sleepHours, setSleepHours] = useState(6);
+  const [sleepHours, setSleepHours] = useState(8);
 
   const decreaseSleep = () => setSleepHours((prev) => Math.max(0, prev - .5));
   const increaseSleep = () => setSleepHours((prev) => Math.min(24, prev + .5));
@@ -81,7 +82,7 @@ export default function Care() {
                 resizeMode="contain"
               />
 
-              <Text style={[appStyles.bodyHeadline4, selectedMood === mood.id && { fontFamily: 'Harmattan-SemiBold' }]}>
+              <Text style={[appStyles.moodLabel, selectedMood === mood.id && { fontFamily: 'Harmattan-SemiBold' }]}>
                 {mood.label}
               </Text>
             </Pressable>
@@ -107,7 +108,24 @@ export default function Care() {
               <Plus color="#37423D" size={20} strokeWidth={1.5} />
             </Pressable>
           </View>
-        </View>
+      </View>
+
+      {/* Next Button */}
+      <View style={appStyles.nextContainer}>
+        <Pressable
+          style={[
+            appStyles.nextButton,
+            !selectedMood && appStyles.nextButtonDisabled,
+          ]}
+          disabled={!selectedMood}
+          onPress={() => {
+            router.push('/care/prompt')
+          }}
+        >
+          <Text style={appStyles.nextButtonText}>Tell me more</Text>
+          <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
+        </Pressable>
+      </View>
     </View>
   );
 }
