@@ -5,7 +5,7 @@ export const appStyles = StyleSheet.create({
   container: {
     marginTop: 40,
     padding: 12,
-    },
+  },
   verticallySpaced: {
     paddingTop: 4,
     paddingBottom: 4,
@@ -89,6 +89,7 @@ export const appStyles = StyleSheet.create({
     fontFamily: 'Harmattan-Regular',
     fontSize: 18,
     color: '#37423D',
+    lineHeight: 26,
   },
   bodyParagraph: {
     fontFamily: 'Harmattan-Regular',
@@ -154,8 +155,9 @@ export const appStyles = StyleSheet.create({
     },
     welcomeBlock: {
         flex: 1,
-        backgroundColor: '#DDE7C7',
-    },
+      backgroundColor: '#DDE7C7',
+
+  },
   backgroundContainer: {
     flex: 1,
     backgroundColor: '#FCF9ED',
@@ -166,6 +168,27 @@ export const appStyles = StyleSheet.create({
     width: 24,
     height: 24,
   },
+  // ----- Welcome Page Styles -----
+  imageContainer: {
+    backgroundColor: '#FCF9ED',
+    paddingVertical: 56,
+    zIndex: 1,
+  },
+    heroBlock: {
+      flex: 1,
+      backgroundColor: '#DDE7C7',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      marginTop: -40,
+      zIndex: 2,
+  },
+  introBlock: {
+    alignItems: 'center',
+    paddingTop: 6,
+  },
+  // ----------------------------
   // --- Profile Page Styles ---
   profileContainer: {
     // backgroundColor: '#06d6a0',
