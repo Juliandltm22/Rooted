@@ -1,9 +1,5 @@
-import { Text, TextInput, View, Pressable, Image } from 'react-native';
+import { Text, View, Image } from 'react-native';
 import { appStyles } from '@/styles/styles';
-import { useState } from 'react';
-import { router } from 'expo-router';
-import { Minus, Plus, ArrowRight } from 'lucide-react-native';
-import { Background } from '@react-navigation/elements';
 
 export default function Care() {
 

@@ -1,16 +1,31 @@
-import { Text, TextInput, View, Pressable, Image } from 'react-native';
+import {
+  Text,
+  TextInput,
+  View,
+  Pressable,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { appStyles } from '@/styles/styles';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Minus, Plus, ArrowRight } from 'lucide-react-native';
-import { Background } from '@react-navigation/elements';
+import { ArrowRight } from 'lucide-react-native';
 
 export default function Care() {
   const [userPrompt, setUserPrompt] = useState('');
 
 
   return (
-    <View style={appStyles.backgroundContainer}>
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+        <View style={appStyles.backgroundContainer}>
       {/* Hero Section */}
       <View style={appStyles.careHero}>
         <View style={appStyles.careHeroText}>
@@ -26,18 +41,31 @@ export default function Care() {
           />
         </View>
       </View>
-
       {/* User Input Section */}
       <View style={appStyles.userInputContainer}>
         <Text style={appStyles.sectionLabel}>Want to share a little more?</Text>
-        <TextInput
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          indicatorStyle='default'
+        >
+          <TextInput
             style={appStyles.noteInput}
             value={userPrompt}
             onChangeText={setUserPrompt}
             placeholder="Anything on your mind?"
             placeholderTextColor="#918E8E"
+            multiline={true}
+            maxLength={500}
+            textAlignVertical="top"
           />
-      </View>
+                      </ScrollView>
+
+        <Text style={appStyles.characterCount}>
+          {userPrompt.length}/500
+        </Text>
+</View>
 
       {/* Next Button */}
       <View style={appStyles.nextContainer}>
@@ -50,7 +78,9 @@ export default function Care() {
           <Text style={appStyles.nextButtonText}>Talk to my Gardener</Text>
           <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
         </Pressable>
-      </View>
+            </View>
     </View>
+    </KeyboardAvoidingView>
+</TouchableWithoutFeedback>
   );
 }

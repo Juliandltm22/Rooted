@@ -544,11 +544,23 @@ export const appStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E1DA',
     borderRadius: 16,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
     minHeight: 90,
+    maxHeight: 110,
     fontFamily: 'Raleway-Regular',
     fontSize: 14,
+    lineHeight: 22,
     color: '#37423D',
+    textAlignVertical: 'top',
+  },
+  characterCount: {
+    fontFamily: 'Raleway-Regular',
+    fontSize: 12,
+    color: '#918E8E',
+    alignSelf: 'flex-end',
+    marginTop: -4,
   },
   sleepContainer: {
     paddingHorizontal: 20,
@@ -583,7 +595,7 @@ export const appStyles = StyleSheet.create({
     // backgroundColor: '#F335D6'
   },
   nextContainer: {
-    flex: 1,
+    // flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingBottom: 120,
