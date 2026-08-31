@@ -1,16 +1,52 @@
-import { Text, TextInput, View, Pressable, Image } from 'react-native';
+import {
+  Text,
+  TextInput,
+  View,
+  Pressable,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { appStyles } from '@/styles/styles';
-import { useState } from 'react';
-import { router } from 'expo-router';
-import { Minus, Plus, ArrowRight } from 'lucide-react-native';
-import { Background } from '@react-navigation/elements';
+import { useCallback, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { ArrowRight } from 'lucide-react-native';
+import { useCareResponses } from './care-responses';
 
 export default function Care() {
-  const [userPrompt, setUserPrompt] = useState('');
+  const { responses, setAdditionalFeelings, ensureCurrentDay } = useCareResponses();
+  const [isStartingPlan, setIsStartingPlan] = useState(false);
+  const canStartPlan = Boolean(responses.emotion) && responses.sleepHours !== null;
+
+  const handleAdditionalFeelingsChange = (additionalFeelings: string) => {
+    if (ensureCurrentDay()) {
+      router.replace('/care');
+      return;
+    }
+
+    setAdditionalFeelings(additionalFeelings);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsStartingPlan(false);
+      if (ensureCurrentDay()) {
+        router.replace('/care');
+      }
+    }, [ensureCurrentDay]),
+  );
 
 
   return (
-    <View style={appStyles.backgroundContainer}>
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+        <View style={appStyles.backgroundContainer}>
       {/* Hero Section */}
       <View style={appStyles.careHero}>
         <View style={appStyles.careHeroText}>
@@ -26,31 +62,54 @@ export default function Care() {
           />
         </View>
       </View>
-
       {/* User Input Section */}
       <View style={appStyles.userInputContainer}>
         <Text style={appStyles.sectionLabel}>Want to share a little more?</Text>
-        <TextInput
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          indicatorStyle='default'
+        >
+          <TextInput
             style={appStyles.noteInput}
-            value={userPrompt}
-            onChangeText={setUserPrompt}
+            value={responses.additionalFeelings}
+            onChangeText={handleAdditionalFeelingsChange}
             placeholder="Anything on your mind?"
             placeholderTextColor="#918E8E"
+            multiline={true}
+            maxLength={500}
+            textAlignVertical="top"
           />
-      </View>
+                      </ScrollView>
+
+        <Text style={appStyles.characterCount}>
+          {responses.additionalFeelings.length}/500
+        </Text>
+</View>
 
       {/* Next Button */}
       <View style={appStyles.nextContainer}>
         <Pressable
-          style={appStyles.nextButton}
+          style={[appStyles.nextButton, (!canStartPlan || isStartingPlan) && appStyles.nextButtonDisabled]}
+          disabled={!canStartPlan || isStartingPlan}
           onPress={() => {
+            if (ensureCurrentDay()) {
+              setIsStartingPlan(false);
+              router.replace('/care');
+              return;
+            }
+
+            setIsStartingPlan(true);
             router.push('/care/agent')
           }}
         >
           <Text style={appStyles.nextButtonText}>Talk to my Gardener</Text>
           <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
         </Pressable>
-      </View>
+            </View>
     </View>
+    </KeyboardAvoidingView>
+</TouchableWithoutFeedback>
   );
 }

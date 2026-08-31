@@ -39,16 +39,10 @@ export default function Profile() {
         <Text style={appStyles.titleHeadline1}>Julian</Text>
         <Text style={appStyles.subtitleParagraph}>Growing for 23 days</Text>
         <View style={appStyles.profileStatusContainer}>
-          <View style={appStyles.streakContainer}>
-            <Text style={appStyles.subtitleParagraph}>7 streak 🔥</Text>
-          </View>
           <View style={appStyles.statsContainer}>
             <Text style={appStyles.subtitleParagraph}>Thriving</Text>
           </View>
-          <View style={appStyles.friendsContainer}>
-            <Text style={appStyles.subtitleParagraph}>5 friends 😊</Text>
-          </View>
-        </View>
+        </View>r
       </View>
       <ScrollView
         style={appStyles.backgroundContainer}
@@ -123,16 +117,6 @@ export default function Profile() {
                 <View style={appStyles.settingRowLeft}>
                   <Bell color="#918E8E" />
                   <Text style={[appStyles.subtitleHeadline4, { color: '#918E8E' }]}>Notifications</Text>
-                </View>
-                <ChevronRight color="#918E8E" />
-              </Pressable>
-
-              <View style={appStyles.divider} />
-
-              <Pressable style={appStyles.settingRow} onPress={() => { router.push('/profile/friends-list') }}>
-                <View style={appStyles.settingRowLeft}>
-                  <Users color="#918E8E" />
-                  <Text style={[appStyles.subtitleHeadline4, { color: '#918E8E' }]}>Friends List</Text>
                 </View>
                 <ChevronRight color="#918E8E" />
               </Pressable>
