@@ -246,7 +246,7 @@ export default function Agent() {
       <ScrollView contentContainerStyle={appStyles.agentPlanContent} showsVerticalScrollIndicator={false}>
         <View style={appStyles.agentPlanGreeting}>
           <Image
-            source={require('@/assets/images/farmer-respira.png')}
+            source={require('@/assets/images/farmer-respira.png')} // Should make this this align with user pfp
             style={appStyles.agentPlanAvatar}
             resizeMode="contain"
           />
