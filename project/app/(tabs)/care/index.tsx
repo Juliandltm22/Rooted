@@ -1,8 +1,9 @@
 import { Text, View, Pressable, Image } from 'react-native';
 import { appStyles } from '@/styles/styles';
-import { useState } from 'react';
-import { router } from "expo-router";
+import { useCallback, useState } from 'react';
+import { router, useFocusEffect } from "expo-router";
 import { Minus, Plus, ArrowRight } from 'lucide-react-native';
+import { type CareEmotion, useCareResponses } from './care-responses';
 
  const MOOD_OPTIONS = [
   {
@@ -38,12 +39,32 @@ import { Minus, Plus, ArrowRight } from 'lucide-react-native';
 ];
 
 export default function Care() {
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [sleepHours, setSleepHours] = useState(8);
+  const {
+    responses,
+    gardenPlan,
+    setEmotion,
+    setSleepHours,
+    ensureCurrentDay,
+    simulateNextDayForDevelopment,
+  } = useCareResponses();
+  const [isContinuing, setIsContinuing] = useState(false);
+  const { emotion: selectedMood, sleepHours } = responses;
 
-  const decreaseSleep = () => setSleepHours((prev) => Math.max(0, prev - .5));
-  const increaseSleep = () => setSleepHours((prev) => Math.min(24, prev + .5));
-  const sleepLabel = sleepHours > 1 ? 'hours' : 'hour';
+  useFocusEffect(
+    useCallback(() => {
+      setIsContinuing(false);
+      const startedNewDay = ensureCurrentDay();
+
+      if (!startedNewDay && gardenPlan) {
+        router.replace('/care/agent');
+      }
+    }, [ensureCurrentDay, gardenPlan]),
+  );
+
+  const decreaseSleep = () => setSleepHours(Math.max(0, (sleepHours ?? 8) - .5));
+  const increaseSleep = () => setSleepHours(Math.min(24, (sleepHours ?? 8) + .5));
+  const sleepLabel = sleepHours === 1 ? 'hour' : 'hours';
+  const isNextDisabled = !selectedMood || sleepHours === null || isContinuing;
 
   return (
     <View style={appStyles.backgroundContainer}>
@@ -74,7 +95,7 @@ export default function Care() {
                 appStyles.moodOption,
                 selectedMood === mood.id && appStyles.moodOptionSelected,
               ]}
-              onPress={() => setSelectedMood(mood.id)}
+              onPress={() => setEmotion(mood.id as CareEmotion)}
             >
               <Image
                 source={mood.image}
@@ -100,7 +121,7 @@ export default function Care() {
 
             <View style={appStyles.sleepHoursWrapper}>
               <Text style={appStyles.sleepHoursText}>
-                {sleepHours} {sleepLabel}
+                {sleepHours === null ? 'Select hours' : `${sleepHours} ${sleepLabel}`}
               </Text>
             </View>
 
@@ -115,16 +136,27 @@ export default function Care() {
         <Pressable
           style={[
             appStyles.nextButton,
-            !selectedMood && appStyles.nextButtonDisabled,
+            isNextDisabled && appStyles.nextButtonDisabled,
           ]}
-          disabled={!selectedMood}
+          disabled={isNextDisabled}
           onPress={() => {
+            if (ensureCurrentDay()) {
+              setIsContinuing(false);
+              return;
+            }
+
+            setIsContinuing(true);
             router.push('/care/prompt')
           }}
         >
           <Text style={appStyles.nextButtonText}>Tell me more</Text>
           <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
         </Pressable>
+        {__DEV__ && (
+          <Pressable style={appStyles.careDevDayButton} onPress={simulateNextDayForDevelopment}>
+            {/* <Text style={appStyles.careDevDayButtonText}>Dev: simulate a new Care day</Text> */}
+          </Pressable>
+        )}
       </View>
     </View>
   );

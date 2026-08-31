@@ -41,7 +41,14 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

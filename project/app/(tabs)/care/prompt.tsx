@@ -11,12 +11,33 @@ import {
   ScrollView,
 } from 'react-native';
 import { appStyles } from '@/styles/styles';
-import { useState } from 'react';
-import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
+import { useCareResponses } from './care-responses';
 
 export default function Care() {
-  const [userPrompt, setUserPrompt] = useState('');
+  const { responses, setAdditionalFeelings, ensureCurrentDay } = useCareResponses();
+  const [isStartingPlan, setIsStartingPlan] = useState(false);
+  const canStartPlan = Boolean(responses.emotion) && responses.sleepHours !== null;
+
+  const handleAdditionalFeelingsChange = (additionalFeelings: string) => {
+    if (ensureCurrentDay()) {
+      router.replace('/care');
+      return;
+    }
+
+    setAdditionalFeelings(additionalFeelings);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsStartingPlan(false);
+      if (ensureCurrentDay()) {
+        router.replace('/care');
+      }
+    }, [ensureCurrentDay]),
+  );
 
 
   return (
@@ -52,8 +73,8 @@ export default function Care() {
         >
           <TextInput
             style={appStyles.noteInput}
-            value={userPrompt}
-            onChangeText={setUserPrompt}
+            value={responses.additionalFeelings}
+            onChangeText={handleAdditionalFeelingsChange}
             placeholder="Anything on your mind?"
             placeholderTextColor="#918E8E"
             multiline={true}
@@ -63,15 +84,23 @@ export default function Care() {
                       </ScrollView>
 
         <Text style={appStyles.characterCount}>
-          {userPrompt.length}/500
+          {responses.additionalFeelings.length}/500
         </Text>
 </View>
 
       {/* Next Button */}
       <View style={appStyles.nextContainer}>
         <Pressable
-          style={appStyles.nextButton}
+          style={[appStyles.nextButton, (!canStartPlan || isStartingPlan) && appStyles.nextButtonDisabled]}
+          disabled={!canStartPlan || isStartingPlan}
           onPress={() => {
+            if (ensureCurrentDay()) {
+              setIsStartingPlan(false);
+              router.replace('/care');
+              return;
+            }
+
+            setIsStartingPlan(true);
             router.push('/care/agent')
           }}
         >
