@@ -7,21 +7,30 @@ import { LogoutModal } from '@/components/logout-modal';
 import { NotificationModal } from '@/components/notification-modal';
 import { supabase } from '../../lib/supabase'
 import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
+import { fetchProfileFields, fetchGrowingDays } from '@/app/lib/profile';
 
 
 export default function Profile() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
   const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
+  const [name, setName] = useState('');
+  const [growingDays, setGrowingDays] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
 
       (async () => {
-        const gardenerId = await fetchSelectedGardenerId();
+        const [gardenerId, profileFields, days] = await Promise.all([
+          fetchSelectedGardenerId(),
+          fetchProfileFields(),
+          fetchGrowingDays(),
+        ]);
         if (isActive) {
           setSelectedGardenerId(gardenerId);
+          setName(profileFields.name);
+          setGrowingDays(days);
         }
       })();
 
@@ -59,8 +68,8 @@ export default function Profile() {
           style={appStyles.profileCircleImage}
           resizeMode="cover"
         />
-        <Text style={appStyles.titleHeadline1}>Julian</Text>
-        <Text style={appStyles.subtitleParagraph}>Growing for 23 days</Text>
+        <Text style={appStyles.titleHeadline1}>{name}</Text>
+        <Text style={appStyles.subtitleParagraph}> Growing for {growingDays} day{growingDays === 1 ? '' : 's'} </Text>
         <View style={appStyles.profileStatusContainer}>
           <View style={appStyles.statsContainer}>
             <Text style={appStyles.subtitleParagraph}>Thriving</Text>
