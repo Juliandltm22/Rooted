@@ -4,7 +4,7 @@ export const appStyles = StyleSheet.create({
 
   container: {
     marginTop: 40,
-    padding: 12,
+    padding: 12, 
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -96,66 +96,66 @@ export const appStyles = StyleSheet.create({
     fontSize: 14,
     color: '#37423D',
   },
-    label: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 16,
-        color: '#86939e',
-        marginBottom: 6,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#86939e',
-        borderRadius: 4,
-        padding: 12,
-        fontSize: 16,
-    },
-    inputDisabled: {
-        backgroundColor: '#f2f2f2',
-        borderColor: '#d1d1d1',
-        color: '#9e9e9e',
-    },
-    button: {
-      backgroundColor: '#899878',
-        borderRadius: 30,
-        alignItems: 'center',
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    avatarContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-    },
-    avatar: {
-        borderRadius: 5,
-        overflow: 'hidden',
-        maxWidth: '100%',
-        marginBottom: 20,
-    },
-    image: {
-        objectFit: 'cover',
-        paddingTop: 0,
-    },
-    noImage: {
-        backgroundColor: '#333',
-        borderWidth: 1,
-        borderStyle: 'solid',
-        borderColor: 'rgb(200, 200, 200)',
-        borderRadius: 5,
-    },
-    backgroundColor: {
-        flex: 1,
-        backgroundColor: '#FCF9ED',
-    },
-    welcomeBlock: {
-        flex: 1,
-      backgroundColor: '#DDE7C7',
+  label: {
+    fontFamily: 'Raleway-Medium',
+    fontSize: 16,
+    color: '#86939e',
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#86939e',
+    borderRadius: 4,
+    padding: 12,
+    fontSize: 16,
+  },
+  inputDisabled: {
+    backgroundColor: '#f2f2f2',
+    borderColor: '#d1d1d1',
+    color: '#9e9e9e',
+  },
+  button: {
+    backgroundColor: '#899878',
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  avatar: {
+    borderRadius: 5,
+    overflow: 'hidden',
+    maxWidth: '100%',
+    marginBottom: 20,
+  },
+  image: {
+    objectFit: 'cover',
+    paddingTop: 0,
+  },
+  noImage: {
+    backgroundColor: '#333',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'rgb(200, 200, 200)',
+    borderRadius: 5,
+  },
+  backgroundColor: {
+    flex: 1,
+    backgroundColor: '#FCF9ED',
+  },
+  welcomeBlock: {
+    flex: 1,
+    backgroundColor: '#DDE7C7',
 
   },
   backgroundContainer: {
@@ -174,15 +174,15 @@ export const appStyles = StyleSheet.create({
     paddingVertical: 56,
     zIndex: 1,
   },
-    heroBlock: {
-      flex: 1,
-      backgroundColor: '#DDE7C7',
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingHorizontal: 24,
-      paddingTop: 24,
-      marginTop: -40,
-      zIndex: 2,
+  heroBlock: {
+    flex: 1,
+    backgroundColor: '#DDE7C7',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    marginTop: -40,
+    zIndex: 2,
   },
   introBlock: {
     alignItems: 'center',
@@ -217,9 +217,9 @@ export const appStyles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   settingRowLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   divider: {
     height: 1,
@@ -243,12 +243,25 @@ export const appStyles = StyleSheet.create({
     backgroundColor: '#899878',
     marginTop: 71,
   },
+  profileCircleImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#DDE7C7',
+    marginTop: 71,
+  },
   profileCircle2: {
     width: 150,
     height: 150,
     borderRadius: 75,
     backgroundColor: '#899878',
     // marginTop: 71,
+  },
+  profileCircleImage2: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#DDE7C7',
   },
   profileStatusContainer: {
     flexDirection: 'row',
@@ -320,8 +333,48 @@ export const appStyles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   gardenerOption: {
-    width: 115,
-    height: 115,
+    width: 106,
+    height: 106,
+    borderRadius: 53,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gardenerOptionSelected: {
+    borderColor: '#899878',
+  },
+  gardenerOptionImageWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+    backgroundColor: '#F1EFE3',
+  },
+  gardenerOptionImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gardenerOptionCheck: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#899878',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FCF9ED',
+  },
+  gardenerOptionLabel: {
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  gardenerOptionColumn: {
+    alignItems: 'center',
+    width: 100,
   },
   saveButton: {
     backgroundColor: '#DDE7C7',
@@ -339,7 +392,7 @@ export const appStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
-    speciesOption: {
+  speciesOption: {
     width: 150,
     height: 150,
     borderRadius: 20,
@@ -363,7 +416,7 @@ export const appStyles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
- modalHeader: {
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -637,7 +690,7 @@ export const appStyles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   agentBackgroundContainer: {
-     flex: 1,
+    flex: 1,
     backgroundColor: '#D5B9B2'
   },
   agentHero: {

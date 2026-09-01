@@ -1,16 +1,44 @@
-import { Text, View, Pressable, ScrollView, Alert } from "react-native";
+import { Text, View, Pressable, ScrollView, Alert, Image } from "react-native";
 import { appStyles } from '@/styles/styles';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { UserPen, Lock, LogOut, ChevronRight, Sprout, Flower, Bell, Users, Shield } from "lucide-react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { LogoutModal } from '@/components/logout-modal';
 import { NotificationModal } from '@/components/notification-modal';
 import { supabase } from '../../lib/supabase'
+import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
+import { fetchProfileFields, fetchGrowingDays } from '@/app/lib/profile';
 
 
 export default function Profile() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
+  const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
+  const [name, setName] = useState('');
+  const [growingDays, setGrowingDays] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const [gardenerId, profileFields, days] = await Promise.all([
+          fetchSelectedGardenerId(),
+          fetchProfileFields(),
+          fetchGrowingDays(),
+        ]);
+        if (isActive) {
+          setSelectedGardenerId(gardenerId);
+          setName(profileFields.name);
+          setGrowingDays(days);
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -35,9 +63,13 @@ export default function Profile() {
     <View style={appStyles.backgroundContainer}>
       {/* Profile Section */}
       <View style={appStyles.profileContainer}>
-        <View style={appStyles.profileCircle} />
-        <Text style={appStyles.titleHeadline1}>Julian</Text>
-        <Text style={appStyles.subtitleParagraph}>Growing for 23 days</Text>
+        <Image
+          source={getGardenerById(selectedGardenerId).image}
+          style={appStyles.profileCircleImage}
+          resizeMode="cover"
+        />
+        <Text style={appStyles.titleHeadline1}>{name}</Text>
+        <Text style={appStyles.subtitleParagraph}> Growing for {growingDays} day{growingDays === 1 ? '' : 's'} </Text>
         <View style={appStyles.profileStatusContainer}>
           <View style={appStyles.statsContainer}>
             <Text style={appStyles.subtitleParagraph}>Thriving</Text>
