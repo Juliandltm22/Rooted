@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/app/lib/supabase';
 import { CARE_MOODS, type Mood } from './care-history';
 
 export interface JournalEntry {
@@ -10,83 +10,72 @@ export interface JournalEntry {
   updatedAt: string;
 }
 
-interface JournalStore {
-  version: 1;
-  records: Record<string, JournalEntry>;
-}
-
 interface SaveJournalEntryInput {
   dateKey: string;
   text: string;
   mood: Mood | null;
 }
 
-const JOURNAL_STORAGE_KEY = '@rooted/journal-entries-v1';
+// Shape of a row as it comes back from the `journal_entries` table
+interface JournalEntryRow {
+  id: string;
+  date_key: string;
+  content: string;
+  mood: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const LOCAL_DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 let writeQueue: Promise<void> = Promise.resolve();
 
-function isJournalEntry(value: unknown): value is JournalEntry {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const entry = value as JournalEntry;
-  return (
-    typeof entry.id === 'string' &&
-    typeof entry.dateKey === 'string' &&
-    LOCAL_DATE_KEY_PATTERN.test(entry.dateKey) &&
-    typeof entry.text === 'string' &&
-    entry.text.length <= 1000 &&
-    (entry.mood === null || CARE_MOODS.includes(entry.mood)) &&
-    typeof entry.createdAt === 'string' &&
-    typeof entry.updatedAt === 'string'
-  );
+function isMood(value: unknown): value is Mood {
+  return typeof value === 'string' && CARE_MOODS.includes(value as Mood);
 }
 
-async function loadJournalStore(): Promise<JournalStore> {
-  const storedValue = await AsyncStorage.getItem(JOURNAL_STORAGE_KEY);
-
-  if (!storedValue) {
-    return { version: 1, records: {} };
-  }
-
-  try {
-    const parsedValue: unknown = JSON.parse(storedValue);
-    if (!parsedValue || typeof parsedValue !== 'object' || !('records' in parsedValue)) {
-      return { version: 1, records: {} };
-    }
-
-    const records = (parsedValue as { records: unknown }).records;
-    if (!records || typeof records !== 'object') {
-      return { version: 1, records: {} };
-    }
-
-    const validRecords = Object.entries(records).reduce<Record<string, JournalEntry>>(
-      (entries, [dateKey, value]) => {
-        if (isJournalEntry(value) && value.dateKey === dateKey) {
-          entries[dateKey] = value;
-        }
-        return entries;
-      },
-      {},
-    );
-
-    return { version: 1, records: validRecords };
-  } catch (error) {
-    console.warn('Unable to restore journal entries.', error);
-    return { version: 1, records: {} };
-  }
+function rowToEntry(row: JournalEntryRow): JournalEntry {
+  return {
+    id: row.id,
+    dateKey: row.date_key,
+    text: row.content,
+    mood: isMood(row.mood) ? row.mood : null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
-export async function getJournalEntries() {
+async function getCurrentUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
+    throw error ?? new Error('You need to be signed in to use the journal.');
+  }
+  return data.user.id;
+}
+
+export async function getJournalEntries(): Promise<JournalEntry[]> {
   await writeQueue.catch(() => undefined);
-  const store = await loadJournalStore();
-  return Object.values(store.records).sort((left, right) =>
-    right.dateKey.localeCompare(left.dateKey),
-  );
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('id, date_key, content, mood, created_at, updated_at')
+    .eq('user_id', userData.user.id)
+    .order('date_key', { ascending: false });
+
+  if (error || !data) {
+    console.warn('Unable to load journal entries from Supabase.', error);
+    return [];
+  }
+
+  return (data as JournalEntryRow[]).map(rowToEntry);
 }
 
-export async function getJournalEntryForDate(dateKey: string) {
+export async function getJournalEntryForDate(dateKey: string): Promise<JournalEntry | null> {
   const entries = await getJournalEntries();
   return entries.find((entry) => entry.dateKey === dateKey) ?? null;
 }
@@ -103,28 +92,29 @@ export function saveJournalEntry(input: SaveJournalEntryInput): Promise<JournalE
   const saveOperation = writeQueue
     .catch(() => undefined)
     .then(async () => {
-      const store = await loadJournalStore();
-      const existingEntry = store.records[input.dateKey];
-      const now = new Date().toISOString();
-      const savedEntry: JournalEntry = {
-        id: existingEntry?.id ?? `journal-${input.dateKey}`,
-        dateKey: input.dateKey,
-        text: input.text,
-        mood: input.mood,
-        createdAt: existingEntry?.createdAt ?? now,
-        updatedAt: now,
-      };
+      const userId = await getCurrentUserId();
 
-      const nextStore: JournalStore = {
-        version: 1,
-        records: {
-          ...store.records,
-          [input.dateKey]: savedEntry,
-        },
-      };
+      // One row per (user_id, date_key) — upsert keeps "one entry per day"
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .upsert(
+          {
+            user_id: userId,
+            date_key: input.dateKey,
+            content: input.text,
+            mood: input.mood,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,date_key' },
+        )
+        .select('id, date_key, content, mood, created_at, updated_at')
+        .single();
 
-      await AsyncStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(nextStore));
-      return savedEntry;
+      if (error || !data) {
+        throw error ?? new Error('Unable to save this journal entry.');
+      }
+
+      return rowToEntry(data as JournalEntryRow);
     });
 
   writeQueue = saveOperation.then(
@@ -134,4 +124,3 @@ export function saveJournalEntry(input: SaveJournalEntryInput): Promise<JournalE
 
   return saveOperation;
 }
-
