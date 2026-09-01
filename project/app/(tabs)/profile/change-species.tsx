@@ -9,22 +9,22 @@ export default function ChangeSpecies() {
       <View style={appStyles.gardenerPicker}>
           <View style={appStyles.speciesOptionsRow}>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#f72585' }]} onPress={() => { /* handle species selection */ }}>
-              <Text style={appStyles.subtitleHeadline4}>Succulent</Text>
+              <Text style={appStyles.subtitleHeadline4}>Cactus</Text>
           </Pressable>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#00afb9' }]} onPress={() => { /* handle species selection */ }}>
-            <Text style={appStyles.subtitleHeadline4}>Cactus</Text>
+            <Text style={appStyles.subtitleHeadline4}>Coming Soon...</Text>
           </Pressable>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#64dfdf' }]} onPress={() => { /* handle species selection */ }}>
-            <Text style={appStyles.subtitleHeadline4}>Aloe Vera</Text>
+            <Text style={appStyles.subtitleHeadline4}>Coming Soon...</Text>
           </Pressable>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#f72585' }]} onPress={() => { /* handle species selection */ }}>
-              <Text style={appStyles.subtitleHeadline4}>Tulip</Text>
+            <Text style={appStyles.subtitleHeadline4}>Coming Soon...</Text>
           </Pressable>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#00afb9' }]} onPress={() => { /* handle species selection */ }}>
-            <Text style={appStyles.subtitleHeadline4}>Rose</Text>
+            <Text style={appStyles.subtitleHeadline4}>Coming Soon...</Text>
           </Pressable>
           <Pressable style={[appStyles.speciesOption, { backgroundColor: '#64dfdf' }]} onPress={() => { /* handle species selection */ }}>
-            <Text style={appStyles.subtitleHeadline4}>Hibiscus</Text>
+            <Text style={appStyles.subtitleHeadline4}>Coming Soon...</Text>
           </Pressable>
         </View>
       </View>
