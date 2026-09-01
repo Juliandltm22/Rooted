@@ -12,6 +12,7 @@ import {
   GARDENERS,
   type GardenerId,
 } from '@/app/lib/gardener';
+import { fetchProfileFields, saveProfileFields } from '@/app/lib/profile';
 
 export default function EditProfile() {
   const [name, setName] = useState('');
@@ -26,9 +27,14 @@ export default function EditProfile() {
 
       (async () => {
         setIsLoading(true);
-        const gardenerId = await fetchSelectedGardenerId();
+        const [gardenerId, profileFields] = await Promise.all([
+          fetchSelectedGardenerId(),
+          fetchProfileFields(),
+        ]);
         if (isActive) {
           setSelectedGardenerId(gardenerId);
+          setName(profileFields.name);
+          setEmail(profileFields.email);
           setIsLoading(false);
         }
       })();
@@ -42,10 +48,13 @@ export default function EditProfile() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveSelectedGardenerId(selectedGardenerId);
+      await Promise.all([
+        saveSelectedGardenerId(selectedGardenerId),
+        saveProfileFields({ name, email }),
+      ]);
     } catch (error) {
       Alert.alert(
-        'Could not save your Gardener',
+        'Could not save your changes',
         error instanceof Error ? error.message : 'Please try again.',
       );
       return;
@@ -75,7 +84,7 @@ export default function EditProfile() {
             ]}
             value={name}
             onChangeText={setName}
-            placeholder="Enter your name" // Change to stored name
+            placeholder="Enter your name"
             placeholderTextColor="#918E8E"
           />
         </View>
@@ -91,7 +100,7 @@ export default function EditProfile() {
             ]}
             value={email}
             onChangeText={setEmail}
-            placeholder="Enter your email" // Change to stored email
+            placeholder="Enter your email"
             placeholderTextColor="#918E8E"
           />
         </View>
