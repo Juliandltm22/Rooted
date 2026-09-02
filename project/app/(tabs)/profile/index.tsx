@@ -74,7 +74,7 @@ export default function Profile() {
           <View style={appStyles.statsContainer}>
             <Text style={appStyles.subtitleParagraph}>Thriving</Text>
           </View>
-        </View>r
+        </View>
       </View>
       <ScrollView
         style={appStyles.backgroundContainer}
