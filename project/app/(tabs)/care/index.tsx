@@ -4,39 +4,7 @@ import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from "expo-router";
 import { Minus, Plus, ArrowRight } from 'lucide-react-native';
 import { type CareEmotion, useCareResponses } from './care-responses';
-
- const MOOD_OPTIONS = [
-  {
-    id: 'great',
-    label: 'Great',
-    image: require('@/assets/images/mood-great.png'),
-  },
-  {
-    id: 'calm',
-    label: 'Calm',
-    image: require('@/assets/images/mood-calm.png'),
-  },
-  {
-    id: 'tired',
-    label: 'Tired',
-    image: require('@/assets/images/mood-tired.png'),
-  },
-  {
-    id: 'sad',
-    label: 'Sad',
-    image: require('@/assets/images/mood-sad.png'),
-  },
-  {
-    id: 'stressed',
-    label: 'Stressed',
-    image: require('@/assets/images/mood-stressed.png'),
-  },
-  {
-    id: 'okay',
-    label: 'Okay',
-    image: require('@/assets/images/mood-okay.png'),
-  },
-];
+import { MOOD_OPTIONS } from '@/app/lib/moods';
 
 export default function Care() {
   const {
