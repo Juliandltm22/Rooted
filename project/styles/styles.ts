@@ -4,7 +4,7 @@ export const appStyles = StyleSheet.create({
 
   container: {
     marginTop: 40,
-    padding: 12, 
+    padding: 12,
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -398,9 +398,59 @@ export const appStyles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    outlineStyle: 'solid',
-    outlineColor: '#37423D',
-    outlineWidth: 1,
+    borderWidth: 1,
+    borderColor: '#E8E6D7',
+  },
+  speciesOptionAvailable: {
+    backgroundColor: '#DDE7C7',
+    borderColor: '#899878',
+  },
+  speciesOptionComingSoon: {
+    backgroundColor: '#F1EFE3',
+    borderStyle: 'dashed',
+    borderColor: '#B9CCA4',
+    gap: 6,
+  },
+  speciesOptionPressed: {
+    opacity: 0.7,
+  },
+  speciesOptionImage: {
+    width: 128,
+    height: 128,
+  },
+  speciesOptionLabel: {
+    marginTop: 6,
+    color: '#37423D',
+  },
+  speciesOptionComingSoonLabel: {
+    color: '#918E8E',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  potOption: {
+    backgroundColor: '#F1EFE3',
+  },
+  potOptionSelected: {
+    backgroundColor: '#DDE7C7',
+    borderColor: '#899878',
+  },
+  potPreviewContainer: {
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  potPreviewLabel: {
+    color: '#918E8E',
+    letterSpacing: 0.5,
+  },
+  potPreviewImage: {
+    width: 190,
+    height: 190,
+    marginTop: 8,
+  },
+  saveButtonCompact: {
+    width: 200,
+    height: 36,
+    marginTop: 12,
   },
   // ------- Log Out Component -------
   modalOverlay: {
