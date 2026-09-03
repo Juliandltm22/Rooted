@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCareHistoryByDate } from '@/app/lib/care-history';
+import { type Mood } from '@/app/lib/care-history';
 import {
   getJournalEntries,
   saveJournalEntry,
@@ -41,7 +41,9 @@ export default function JournalScreen() {
   const [todayDateKey, setTodayDateKey] = useState(initialDateKey);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [draft, setDraft] = useState('');
+  const [mood, setMood] = useState<Mood | null>(null);
   const [lastPersistedText, setLastPersistedText] = useState<string | null>(null);
+  const [lastPersistedMood, setLastPersistedMood] = useState<Mood | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -55,25 +57,18 @@ export default function JournalScreen() {
     setTodayDateKey(currentDateKey);
 
     try {
-      const [storedEntries, careHistory] = await Promise.all([
-        getJournalEntries(),
-        getCareHistoryByDate(),
-      ]);
-      const hydratedEntries = storedEntries.map((entry) => ({
-        ...entry,
-        mood: careHistory[entry.dateKey]
-          ? careHistory[entry.dateKey].mood
-          : entry.mood,
-      }));
-      const currentEntry = hydratedEntries.find(
+      const storedEntries = await getJournalEntries();
+      const currentEntry = storedEntries.find(
         (entry) => entry.dateKey === currentDateKey,
       );
 
-      setEntries(hydratedEntries);
+      setEntries(storedEntries);
       setLastPersistedText(currentEntry?.text ?? null);
+      setLastPersistedMood(currentEntry?.mood ?? null);
 
       if (shouldHydrateDraft) {
         setDraft(currentEntry?.text ?? '');
+        setMood(currentEntry?.mood ?? null);
       }
 
       hasHydratedRef.current = true;
@@ -83,7 +78,9 @@ export default function JournalScreen() {
 
       if (shouldHydrateDraft) {
         setDraft('');
+        setMood(null);
         setLastPersistedText(null);
+        setLastPersistedMood(null);
       }
 
       setStatusMessage('Your journal could not be loaded. Please try again.');
@@ -116,7 +113,8 @@ export default function JournalScreen() {
     [entries, todayDateKey],
   );
 
-  const isSaved = lastPersistedText !== null && draft === lastPersistedText;
+  const isSaved =
+    lastPersistedText !== null && draft === lastPersistedText && mood === lastPersistedMood;
   const todayLabel = formatFriendlyDate(getDateFromLocalKey(todayDateKey));
 
   const handleSave = async () => {
@@ -129,11 +127,10 @@ export default function JournalScreen() {
     setStatusMessage(null);
 
     try {
-      const careHistory = await getCareHistoryByDate();
       const savedEntry = await saveJournalEntry({
         dateKey: dateKeyBeingSaved,
         text: draft,
-        mood: careHistory[dateKeyBeingSaved]?.mood ?? null,
+        mood,
       });
 
       if (activeDateKeyRef.current !== dateKeyBeingSaved) {
@@ -148,6 +145,7 @@ export default function JournalScreen() {
         ].sort((left, right) => right.dateKey.localeCompare(left.dateKey)),
       );
       setLastPersistedText(savedEntry.text);
+      setLastPersistedMood(savedEntry.mood);
     } catch (error) {
       console.warn('Unable to save the journal entry.', error);
       setStatusMessage('This entry was not saved. Please try again.');
@@ -195,7 +193,9 @@ export default function JournalScreen() {
                 isLoading={isLoading}
                 isSaved={isSaved}
                 isSaving={isSaving}
+                mood={mood}
                 onChangeText={setDraft}
+                onSelectMood={setMood}
                 onSave={() => void handleSave()}
                 value={draft}
               />
