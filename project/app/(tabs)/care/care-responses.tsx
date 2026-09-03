@@ -299,9 +299,15 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
 
       const nextDate = getNextCalendarDate(activeDayRef.current.date);
       developmentDateOverride.current = nextDate;
-      activateDay(nextDate);
+
+      // Always force a brand-new, empty day for the simulated date, even if a
+      // previous dev session already saved a plan for that date. This makes
+      // sure the button always sends you back to the very beginning
+      // (emotion + sleep prompt) instead of resurfacing an old saved plan.
+      const freshDay = createEmptyCareDay(nextDate);
+      commitActiveDay(freshDay);
     },
-  }), [activateDay, activeDay, ensureCurrentDay, isReady, updateCurrentDay]);
+  }), [activeDay, commitActiveDay, ensureCurrentDay, isReady, updateCurrentDay]);
 
   return <CareResponsesContext.Provider value={value}>{children}</CareResponsesContext.Provider>;
 }
