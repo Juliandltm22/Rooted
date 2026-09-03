@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { ArrowRight, Check, Droplets, Heart, Leaf, Moon, PersonStanding, RefreshCw, Sparkles, Wind } from 'lucide-react-native';
 import { appStyles } from '@/styles/styles';
 import { generateGardenPlan, getGuidedActivityConfig, isGuidedGardenTask, type GardenTask, type GardenTaskCategory } from '@/app/lib/garden-plan';
+import { GardenerBubble } from '@/components/gardener-bubble';
 import { useCareResponses } from './care-responses';
 import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
 import { fetchProfileFields } from '@/app/lib/profile';
@@ -273,21 +274,11 @@ export default function Agent() {
   return (
     <View style={appStyles.agentPlanScreen}>
       <ScrollView contentContainerStyle={appStyles.agentPlanContent} showsVerticalScrollIndicator={false}>
-        <View style={appStyles.agentPlanGreeting}>
-          <View style={appStyles.agentPlanAvatarClip}>
-            <Image
-              source={getGardenerById(selectedGardenerId).image}
-              style={appStyles.agentPlanAvatar}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={appStyles.agentPlanGreetingText}>
-            <Text style={appStyles.agentPlanGreetingTitle}>
-              Thank you for sharing{profileName ? `, ${profileName}` : ''}.
-            </Text>
-            <Text style={appStyles.agentPlanGreetingBody}>{plan.encouragement}</Text>
-          </View>
-        </View>
+        <GardenerBubble
+          avatarSource={getGardenerById(selectedGardenerId).image}
+          title={`Thank you for sharing${profileName ? `, ${profileName}` : ''}.`}
+          message={plan.encouragement}
+        />
 
         <View style={appStyles.agentPlanHeader}>
           <Sparkles color="#607950" size={24} strokeWidth={1.7} />
@@ -312,7 +303,7 @@ export default function Agent() {
             <GardenTaskCard
               key={gardenTask.id}
               gardenTask={gardenTask}
-              onToggle={() => toggleTaskCompletion(gardenTask.id)}
+              onToggle={() => { void toggleTaskCompletion(gardenTask.id); }}
               onStart={() => router.push({ pathname: '/care/session/[id]', params: { id: gardenTask.id } })}
             />
           ))}
