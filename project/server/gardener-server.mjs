@@ -36,7 +36,7 @@ import {
 dns.setDefaultResultOrder('ipv4first');
 
 const PORT = Number(process.env.GARDENER_SERVER_PORT) || 8787;
-const GEMINI_TIMEOUT_MS = 12_000;
+const GEMINI_TIMEOUT_MS = 20_000;
 const MAX_BODY_BYTES = 10_000; // Care check-ins are small; this is a generous ceiling.
 
 const apiKey = process.env.GEMINI_API_KEY?.trim();

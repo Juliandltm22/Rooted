@@ -68,7 +68,11 @@ export default function GuidedSession() {
       return;
     }
 
-    completeTask(currentPlan.taskId);
+    void completeTask(currentPlan.taskId).then((wasSaved) => {
+      if (!wasSaved) {
+        setAudioNotice('Your activity finished, but Plant Health could not sync. Please try again from your plan.');
+      }
+    });
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
   }, [careDate, completeTask, ensureCurrentDay]);
 

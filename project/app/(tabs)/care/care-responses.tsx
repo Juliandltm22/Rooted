@@ -3,6 +3,14 @@ import { AppState } from 'react-native';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeGardenPlan, type GardenPlan } from '@/app/lib/garden-plan';
 import { CARE_DAYS_STORAGE_KEY, CARE_MOODS, type Mood } from '@/app/lib/care-history';
+import {
+  persistGardenTaskCompletion,
+  persistGardenTaskIncomplete,
+  syncGardenDailyPlan,
+} from '@/app/lib/plant-data';
+import { getTaskCompletedMessage, PLAN_COMPLETED_MESSAGE } from '@/app/lib/plant-notification-copy';
+import { getLocalDateKey } from '@/app/lib/local-date';
+import { usePlantNotification } from '@/context/plant-notification-context';
 
 export type CareEmotion = Mood;
 
@@ -26,8 +34,8 @@ interface CareResponsesContextValue {
   setSleepHours: (hours: number) => void;
   setAdditionalFeelings: (feelings: string) => void;
   setGardenPlan: (plan: GardenPlan) => void;
-  toggleTaskCompletion: (taskId: string) => void;
-  completeTask: (taskId: string) => void;
+  toggleTaskCompletion: (taskId: string) => Promise<boolean>;
+  completeTask: (taskId: string) => Promise<boolean>;
   ensureCurrentDay: () => boolean;
   simulateNextDayForDevelopment: () => void;
 }
@@ -36,18 +44,10 @@ const DEFAULT_SLEEP_HOURS = 8;
 
 const CareResponsesContext = createContext<CareResponsesContextValue | undefined>(undefined);
 
-function getLocalCalendarDate(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
 function getNextCalendarDate(date: string) {
   const nextDate = new Date(`${date}T12:00:00`);
   nextDate.setDate(nextDate.getDate() + 1);
-  return getLocalCalendarDate(nextDate);
+  return getLocalDateKey(nextDate);
 }
 
 function createEmptyCareDay(date: string): CareDay {
@@ -113,13 +113,16 @@ async function loadCareDays(): Promise<Record<string, CareDay>> {
 }
 
 export function CareResponsesProvider({ children }: { children: ReactNode }) {
-  const initialDay = useRef(createEmptyCareDay(getLocalCalendarDate())).current;
+  const { showPlantNotification } = usePlantNotification();
+  const initialDay = useRef(createEmptyCareDay(getLocalDateKey())).current;
   const [activeDay, setActiveDay] = useState<CareDay>(initialDay);
   const [isReady, setIsReady] = useState(false);
   const activeDayRef = useRef(initialDay);
   const careDaysRef = useRef<Record<string, CareDay>>({});
   const isReadyRef = useRef(false);
   const writeQueue = useRef(Promise.resolve());
+  const taskMutationQueue = useRef(Promise.resolve());
+  const pendingTaskIdsRef = useRef(new Set<string>());
   const developmentDateOverride = useRef<string | null>(null);
 
   const getActiveDate = useCallback(() => {
@@ -127,7 +130,7 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
       return developmentDateOverride.current;
     }
 
-    return getLocalCalendarDate();
+    return getLocalDateKey();
   }, []);
 
   const persistCareDays = useCallback((careDays: Record<string, CareDay>) => {
@@ -186,6 +189,97 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
 
     commitActiveDay(update(currentDay));
   }, [commitActiveDay, getActiveDate]);
+
+  const commitTaskState = useCallback((date: string, taskId: string, completed: boolean) => {
+    const currentDay = activeDayRef.current.date === date
+      ? activeDayRef.current
+      : careDaysRef.current[date];
+
+    if (!currentDay?.gardenPlan) {
+      return;
+    }
+
+    const nextDay: CareDay = {
+      ...currentDay,
+      gardenPlan: {
+        ...currentDay.gardenPlan,
+        tasks: currentDay.gardenPlan.tasks.map((task) =>
+          task.id === taskId ? { ...task, completed } : task,
+        ),
+      },
+    };
+
+    if (activeDayRef.current.date === date) {
+      commitActiveDay(nextDay);
+      return;
+    }
+
+    const nextCareDays = { ...careDaysRef.current, [date]: nextDay };
+    careDaysRef.current = nextCareDays;
+    persistCareDays(nextCareDays);
+  }, [commitActiveDay, persistCareDays]);
+
+  const mutateTaskCompletion = useCallback((taskId: string, forceCompleted?: boolean) => {
+    if (pendingTaskIdsRef.current.has(taskId)) {
+      return Promise.resolve(false);
+    }
+
+    pendingTaskIdsRef.current.add(taskId);
+
+    const mutation = taskMutationQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const date = getActiveDate();
+        const currentDay = activeDayRef.current.date === date
+          ? activeDayRef.current
+          : careDaysRef.current[date];
+        const task = currentDay?.gardenPlan?.tasks.find((gardenTask) => gardenTask.id === taskId);
+
+        if (!currentDay?.gardenPlan || !task) {
+          return false;
+        }
+
+        const shouldComplete = forceCompleted ?? !task.completed;
+        if (task.completed === shouldComplete) {
+          return true;
+        }
+
+        try {
+          if (!shouldComplete) {
+            await persistGardenTaskIncomplete(date, taskId);
+            commitTaskState(date, taskId, false);
+            return true;
+          }
+
+          const result = await persistGardenTaskCompletion({
+            dateKey: date,
+            task,
+            planTaskIds: currentDay.gardenPlan.tasks.map((gardenTask) => gardenTask.id),
+          });
+
+          commitTaskState(date, taskId, true);
+
+          if (result.isNewCompletion) {
+            if (result.isPlanComplete) {
+              showPlantNotification(PLAN_COMPLETED_MESSAGE, 'plan-completed', 6_500);
+            } else {
+              showPlantNotification(getTaskCompletedMessage(task), 'task-completed', 5_500);
+            }
+          }
+
+          return true;
+        } catch (error) {
+          console.warn('Unable to update Garden Plan task completion.', error);
+          return false;
+        }
+      });
+
+    taskMutationQueue.current = mutation.then(() => undefined, () => undefined);
+
+    return mutation.finally(() => {
+      pendingTaskIdsRef.current.delete(taskId);
+    });
+  }, [commitTaskState, getActiveDate, showPlantNotification]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -255,42 +349,14 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const date = getActiveDate();
       updateCurrentDay((currentDay) => ({ ...currentDay, gardenPlan: normalizedPlan }));
-    },
-    toggleTaskCompletion: (taskId: string) => {
-      updateCurrentDay((currentDay) => {
-        if (!currentDay.gardenPlan) {
-          return currentDay;
-        }
-
-        return {
-          ...currentDay,
-          gardenPlan: {
-            ...currentDay.gardenPlan,
-            tasks: currentDay.gardenPlan.tasks.map((task) =>
-              task.id === taskId ? { ...task, completed: !task.completed } : task,
-            ),
-          },
-        };
+      void syncGardenDailyPlan(date, normalizedPlan.tasks.length).catch((error) => {
+        console.warn('Unable to sync the Garden Plan record yet.', error);
       });
     },
-    completeTask: (taskId: string) => {
-      updateCurrentDay((currentDay) => {
-        if (!currentDay.gardenPlan) {
-          return currentDay;
-        }
-
-        return {
-          ...currentDay,
-          gardenPlan: {
-            ...currentDay.gardenPlan,
-            tasks: currentDay.gardenPlan.tasks.map((task) =>
-              task.id === taskId ? { ...task, completed: true } : task,
-            ),
-          },
-        };
-      });
-    },
+    toggleTaskCompletion: (taskId: string) => mutateTaskCompletion(taskId),
+    completeTask: (taskId: string) => mutateTaskCompletion(taskId, true),
     ensureCurrentDay,
     simulateNextDayForDevelopment: () => {
       if (!__DEV__) {
@@ -307,7 +373,15 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
       const freshDay = createEmptyCareDay(nextDate);
       commitActiveDay(freshDay);
     },
-  }), [activeDay, commitActiveDay, ensureCurrentDay, isReady, updateCurrentDay]);
+  }), [
+    activeDay,
+    commitActiveDay,
+    ensureCurrentDay,
+    getActiveDate,
+    isReady,
+    mutateTaskCompletion,
+    updateCurrentDay,
+  ]);
 
   return <CareResponsesContext.Provider value={value}>{children}</CareResponsesContext.Provider>;
 }

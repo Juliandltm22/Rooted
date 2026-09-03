@@ -9,7 +9,7 @@ export interface PotColorOption {
     image: ImageSourcePropType;
 }
 
-// These are the only 4 pot colors we have Stage_1 cactus art for.
+// These are the four pot colors with artwork for every current growth stage.
 export const POT_COLORS: PotColorOption[] = [
     { id: 'blue', label: 'Blue Pot', image: require('@/assets/images/transparent-cactus/Stage_1_-_Blue_Pot.png') },
     { id: 'gray', label: 'Gray Pot', image: require('@/assets/images/transparent-cactus/Stage_1_-_gray_Pot.png') },
@@ -21,6 +21,16 @@ export const DEFAULT_POT_COLOR_ID: PotColorId = 'blue';
 
 export function isPotColorId(value: unknown): value is PotColorId {
     return typeof value === 'string' && POT_COLORS.some((pot) => pot.id === value);
+}
+
+export function normalizePotColorId(value: unknown): PotColorId {
+    if (typeof value !== 'string') {
+        return DEFAULT_POT_COLOR_ID;
+    }
+
+    const normalizedValue = value.trim().toLowerCase();
+    const knownValue = normalizedValue === 'grey' ? 'gray' : normalizedValue;
+    return isPotColorId(knownValue) ? knownValue : DEFAULT_POT_COLOR_ID;
 }
 
 export function getPotColorById(id: PotColorId | null | undefined): PotColorOption {
@@ -43,7 +53,7 @@ export async function fetchSelectedPotColorId(): Promise<PotColorId> {
         return DEFAULT_POT_COLOR_ID;
     }
 
-    return isPotColorId(data.pot_color) ? data.pot_color : DEFAULT_POT_COLOR_ID;
+    return normalizePotColorId(data.pot_color);
 }
 
 export async function saveSelectedPotColorId(potColorId: PotColorId): Promise<void> {
