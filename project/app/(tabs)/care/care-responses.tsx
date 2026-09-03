@@ -297,11 +297,13 @@ export function CareResponsesProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Force a blank day, overwriting any stale record that may
+      // already exist for this date from a previous development session.
       const nextDate = getNextCalendarDate(activeDayRef.current.date);
       developmentDateOverride.current = nextDate;
-      activateDay(nextDate);
+      commitActiveDay(createEmptyCareDay(nextDate));
     },
-  }), [activateDay, activeDay, ensureCurrentDay, isReady, updateCurrentDay]);
+  }), [activateDay, activeDay, commitActiveDay, ensureCurrentDay, isReady, updateCurrentDay]);
 
   return <CareResponsesContext.Provider value={value}>{children}</CareResponsesContext.Provider>;
 }
