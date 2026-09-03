@@ -134,7 +134,8 @@ export default function Agent() {
         return;
       }
 
-      setError(caughtError instanceof Error ? caughtError.message : 'Your Gardener needs another moment.');
+      console.warn('Unable to create a Rooted Garden Plan.', caughtError);
+      setError('We could not create your plan just yet.');
     } finally {
       if (
         isMounted.current &&

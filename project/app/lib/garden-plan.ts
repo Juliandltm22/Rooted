@@ -1,6 +1,28 @@
 import type { CareEmotion, CareResponses } from '@/app/(tabs)/care/care-responses';
 
 export type GuidedActivityType = 'breathing' | 'stretching' | 'affirmations' | 'meditation';
+export const GARDENER_ACTIVITY_TYPES = [
+  'breathing',
+  'stretching',
+  'meditation',
+  'affirmations',
+  'hydration',
+] as const;
+export type GardenerActivityType = typeof GARDENER_ACTIVITY_TYPES[number];
+export type HydrationUnit = 'glass' | 'glasses';
+
+export interface GardenerTaskSuggestion {
+  type: GardenerActivityType;
+  description: string;
+  quantity?: number;
+  unit?: HydrationUnit;
+}
+
+export interface GardenerResponse {
+  message: string;
+  tasks: GardenerTaskSuggestion[];
+}
+
 export type GardenTaskCategory =
   | 'calm'
   | 'connection'
@@ -36,6 +58,19 @@ export const GUIDED_ACTIVITY_CONFIG: Record<GuidedActivityType, {
   stretching: { durationMinutes: 5, title: '5-Minute Stretch' },
   affirmations: { durationMinutes: 3, title: '3-Minute Affirmations' },
   meditation: { durationMinutes: 5, title: '5-Minute Meditation' },
+};
+
+/** Allowed AI-selectable activities. Titles and durations are owned by Rooted. */
+export const GARDENER_ACTIVITY_CATALOG: Record<GardenerActivityType, {
+  title: string;
+  guided: boolean;
+  durationMinutes?: number;
+}> = {
+  breathing: { ...GUIDED_ACTIVITY_CONFIG.breathing, guided: true },
+  stretching: { ...GUIDED_ACTIVITY_CONFIG.stretching, guided: true },
+  meditation: { ...GUIDED_ACTIVITY_CONFIG.meditation, guided: true },
+  affirmations: { ...GUIDED_ACTIVITY_CONFIG.affirmations, guided: true },
+  hydration: { title: 'Glass of Water', guided: false },
 };
 
 export interface GardenTask {
@@ -86,6 +121,10 @@ const guidedTask = (
 
 export function isGuidedActivityType(value: unknown): value is GuidedActivityType {
   return typeof value === 'string' && GUIDED_ACTIVITY_TYPES.includes(value as GuidedActivityType);
+}
+
+export function isGardenerActivityType(value: unknown): value is GardenerActivityType {
+  return typeof value === 'string' && GARDENER_ACTIVITY_TYPES.includes(value as GardenerActivityType);
 }
 
 export function isGardenTaskCategory(value: unknown): value is GardenTaskCategory {
@@ -152,7 +191,118 @@ export function normalizeGardenPlan(value: unknown): GardenPlan | null {
   return { title: plan.title, encouragement: plan.encouragement, tasks: tasks as GardenTask[] };
 }
 
+function isShortNonEmptyString(value: unknown, maximumLength: number): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= maximumLength;
+}
+
+/** Validates the small provider-owned shape before any AI content reaches the UI. */
+export function normalizeGardenerResponse(value: unknown): GardenerResponse | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const response = value as Partial<GardenerResponse>;
+  if (!isShortNonEmptyString(response.message, 500) || !Array.isArray(response.tasks) || response.tasks.length !== 3) {
+    return null;
+  }
+
+  const seenTypes = new Set<GardenerActivityType>();
+  const tasks: GardenerTaskSuggestion[] = [];
+
+  for (const taskValue of response.tasks) {
+    if (!taskValue || typeof taskValue !== 'object') {
+      return null;
+    }
+
+    const suggestion = taskValue as Partial<GardenerTaskSuggestion>;
+    if (
+      !isGardenerActivityType(suggestion.type) ||
+      seenTypes.has(suggestion.type) ||
+      !isShortNonEmptyString(suggestion.description, 220)
+    ) {
+      return null;
+    }
+
+    if (suggestion.type === 'hydration') {
+      if (
+        !Number.isInteger(suggestion.quantity) ||
+        (suggestion.quantity ?? 0) < 1 ||
+        (suggestion.quantity ?? 0) > 3 ||
+        (suggestion.unit !== 'glass' && suggestion.unit !== 'glasses') ||
+        (suggestion.quantity === 1 ? suggestion.unit !== 'glass' : suggestion.unit !== 'glasses')
+      ) {
+        return null;
+      }
+    } else if (suggestion.quantity !== undefined || suggestion.unit !== undefined) {
+      return null;
+    }
+
+    seenTypes.add(suggestion.type);
+    tasks.push({
+      type: suggestion.type,
+      description: suggestion.description.trim(),
+      ...(suggestion.type === 'hydration'
+        ? { quantity: suggestion.quantity, unit: suggestion.unit }
+        : {}),
+    });
+  }
+
+  return { message: response.message.trim(), tasks };
+}
+
+/** Maps validated AI choices onto Rooted-owned titles, timers, and navigation types. */
+export function gardenPlanFromGardenerResponse(value: unknown): GardenPlan | null {
+  const gardenerResponse = normalizeGardenerResponse(value);
+  if (!gardenerResponse) {
+    return null;
+  }
+
+  return {
+    title: "Today's Garden Plan",
+    encouragement: gardenerResponse.message,
+    tasks: gardenerResponse.tasks.map((suggestion, index) => {
+      if (suggestion.type === 'hydration') {
+        const quantity = suggestion.quantity as number;
+        return {
+          id: `gardener-hydration-${index}`,
+          title: `${quantity} ${quantity === 1 ? 'Glass' : 'Glasses'} of Water`,
+          description: suggestion.description,
+          category: 'hydration',
+          guided: false,
+          completed: false,
+        };
+      }
+
+      const activity = GARDENER_ACTIVITY_CATALOG[suggestion.type];
+      return {
+        id: `gardener-${suggestion.type}-${index}`,
+        title: activity.title,
+        description: suggestion.description,
+        category: suggestion.type,
+        guided: true,
+        durationMinutes: activity.durationMinutes,
+        completed: false,
+      };
+    }),
+  };
+}
+
 const containsAny = (value: string, words: string[]) => words.some((word) => value.includes(word));
+
+const IMMEDIATE_DANGER_PATTERNS = [
+  /\bkill myself\b/i,
+  /\bend my (?:own )?life\b/i,
+  /\bi want to die\b/i,
+  /\bi(?:'m| am) suicidal\b/i,
+  /\bsuicide plan\b/i,
+  /\bhurt myself\b/i,
+  /\bself[- ]harm\b/i,
+  /\bdon't want to (?:be alive|live)\b/i,
+];
+
+export function containsImmediateDanger(value: string): boolean {
+  return IMMEDIATE_DANGER_PATTERNS.some((pattern) => pattern.test(value));
+}
 
 function taskForContext(feelings: string): GardenTask | null {
   const normalizedFeelings = feelings.toLowerCase();
@@ -225,6 +375,18 @@ function createLocalGardenPlan({ emotion, sleepHours, additionalFeelings }: Care
     throw new Error('Please add how long you slept before asking your Gardener for a plan.');
   }
 
+  if (containsImmediateDanger(additionalFeelings)) {
+    return {
+      title: 'Please Reach Out Now',
+      encouragement: 'I am really glad you shared this. If you might act on these thoughts or are in immediate danger, call local emergency services now or go to the nearest emergency department. In the U.S. or Canada, call or text 988. Stay with someone you trust and move away from anything you could use to hurt yourself. Rooted is not emergency care.',
+      tasks: [
+        guidedTask('urgent-breathing', 'While you contact human support, keep your feet on the floor and take slow, steady breaths.', 'breathing'),
+        task('urgent-water', '1 Glass of Water', 'If it is safe, take a glass of water while you stay with another person.', 'hydration'),
+        guidedTask('urgent-affirmations', 'You deserve immediate human support. Keep reaching out until someone responds.', 'affirmations'),
+      ],
+    };
+  }
+
   const tasks: GardenTask[] = [];
   const contextTask = additionalFeelings.trim() ? taskForContext(additionalFeelings) : null;
   const guidedActivity = guidedTaskForContext({ emotion, sleepHours, additionalFeelings });
@@ -278,42 +440,43 @@ function createLocalGardenPlan({ emotion, sleepHours, additionalFeelings }: Care
 }
 
 async function requestRemoteGardenPlan(responses: CareResponses, endpoint: string): Promise<GardenPlan> {
-  const response = await withTimeout(fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(responses),
-  }), 15000);
+  const response = await fetchWithTimeout(endpoint, {
+    mood: responses.emotion,
+    sleepHours: responses.sleepHours,
+    writtenResponse: responses.additionalFeelings.trim(),
+  });
 
   if (!response.ok) {
     throw new Error('Your Gardener could not reach the plan service.');
   }
 
-  const plan = normalizeGardenPlan(await response.json());
-  if (!plan || plan.tasks.length < 3) {
+  const plan = gardenPlanFromGardenerResponse(await response.json());
+  if (!plan) {
     throw new Error('Your Gardener returned a plan we could not read.');
   }
 
-  return {
-    ...plan,
-    // Completion belongs to the current in-app plan, not the AI response.
-    tasks: plan.tasks.slice(0, 5).map((gardenTask) => ({ ...gardenTask, completed: false })),
-  };
+  return plan;
 }
 
-async function withTimeout<T>(request: Promise<T>, milliseconds: number): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
+const GARDENER_REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(endpoint: string, body: {
+  mood: CareEmotion | null;
+  sleepHours: number | null;
+  writtenResponse: string;
+}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GARDENER_REQUEST_TIMEOUT_MS);
 
   try {
-    return await Promise.race([
-      request,
-      new Promise<T>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error('Your Gardener is taking longer than expected. Please try again.')), milliseconds);
-      }),
-    ]);
+    return await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
   } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
+    clearTimeout(timeout);
   }
 }
 
@@ -326,10 +489,16 @@ export async function generateGardenPlan(responses: CareResponses): Promise<Gard
   const endpoint = process.env.EXPO_PUBLIC_GARDEN_PLAN_ENDPOINT;
 
   if (endpoint) {
-    return requestRemoteGardenPlan(responses, endpoint);
+    try {
+      return await requestRemoteGardenPlan(responses, endpoint);
+    } catch (error) {
+      console.warn('The remote Gardener plan was unavailable. Using Rooted recommendations.', error);
+    }
   }
 
-  // Keep the generating state visible long enough to feel intentional, without delaying the app.
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  // Keep the existing on-device recommendation system available for every failure mode.
+  if (!endpoint) {
+    await new Promise((resolve) => setTimeout(resolve, 900));
+  }
   return createLocalGardenPlan(responses);
 }
