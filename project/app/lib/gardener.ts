@@ -10,12 +10,32 @@ export interface GardenerOption {
     id: GardenerId;
     name: string;
     image: ImageSourcePropType;
+    farmerImage: ImageSourcePropType;
+    farmerIllustrationOffsetX: number;
 }
 
 export const GARDENERS: GardenerOption[] = [
-    { id: 'mateo', name: 'Mateo', image: require('@/assets/images/mateo-pfp.png') },
-    { id: 'maya', name: 'Maya', image: require('@/assets/images/maya-pfp.png') },
-    { id: 'leo', name: 'Leo', image: require('@/assets/images/leo-pfp.png') },
+    {
+        id: 'mateo',
+        name: 'Mateo',
+        image: require('@/assets/images/mateo-pfp.png'),
+        farmerImage: require('@/assets/images/farmer-mateo.png'),
+        farmerIllustrationOffsetX: 14,
+    },
+    {
+        id: 'maya',
+        name: 'Maya',
+        image: require('@/assets/images/maya-pfp.png'),
+        farmerImage: require('@/assets/images/farmer-maya.png'),
+        farmerIllustrationOffsetX: -14,
+    },
+    {
+        id: 'leo',
+        name: 'Leo',
+        image: require('@/assets/images/leo-pfp.png'),
+        farmerImage: require('@/assets/images/farmer-leo.png'),
+        farmerIllustrationOffsetX: 0,
+    },
 ];
 
 export const DEFAULT_GARDENER_ID: GardenerId = 'leo';

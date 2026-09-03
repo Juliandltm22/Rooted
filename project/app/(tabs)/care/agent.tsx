@@ -243,7 +243,7 @@ export default function Agent() {
     return (
       <View style={appStyles.agentErrorScreen}>
         <Image
-          source={require('@/assets/images/farmer-respira.png')}
+          source={getGardenerById(selectedGardenerId).farmerImage}
           style={appStyles.agentErrorImage}
           resizeMode="contain"
         />

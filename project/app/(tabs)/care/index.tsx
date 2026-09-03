@@ -6,6 +6,7 @@ import { Minus, Plus, ArrowRight } from 'lucide-react-native';
 import { type CareEmotion, useCareResponses } from './care-responses';
 import { MOOD_OPTIONS } from '@/app/lib/moods';
 import { fetchProfileFields } from '@/app/lib/profile';
+import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
 
 export default function Care() {
   const {
@@ -18,6 +19,7 @@ export default function Care() {
   } = useCareResponses();
   const [isContinuing, setIsContinuing] = useState(false);
   const [profileName, setProfileName] = useState('');
+  const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
   const { emotion: selectedMood, sleepHours } = responses;
 
   useFocusEffect(
@@ -36,9 +38,13 @@ export default function Care() {
       let isActive = true;
 
       (async () => {
-        const profileFields = await fetchProfileFields();
+        const [profileFields, gardenerId] = await Promise.all([
+          fetchProfileFields(),
+          fetchSelectedGardenerId(),
+        ]);
         if (isActive) {
           setProfileName(profileFields.name);
+          setSelectedGardenerId(gardenerId);
         }
       })();
 
@@ -64,8 +70,11 @@ export default function Care() {
         </View>
         <View style={appStyles.careHeroImageWrapper}>
           <Image
-            source={require('@/assets/images/farmer-respira.png')}
-            style={appStyles.careIllustration}
+            source={getGardenerById(selectedGardenerId).farmerImage}
+            style={[
+              appStyles.careIllustration,
+              { transform: [{ translateX: getGardenerById(selectedGardenerId).farmerIllustrationOffsetX }] },
+            ]}
             resizeMode="contain"
           />
         </View>
