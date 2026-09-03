@@ -1,24 +1,30 @@
 import { Sparkles } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { type Mood } from '@/app/lib/care-history';
+import { MOOD_OPTIONS } from '@/app/lib/moods';
 import { journalCardShadow, journalColors } from './theme';
 
 interface TodayJournalCardProps {
   dateLabel: string;
   value: string;
+  mood: Mood | null;
   isLoading: boolean;
   isSaved: boolean;
   isSaving: boolean;
   onChangeText: (value: string) => void;
+  onSelectMood: (mood: Mood) => void;
   onSave: () => void;
 }
 
 export function TodayJournalCard({
   dateLabel,
   value,
+  mood,
   isLoading,
   isSaved,
   isSaving,
   onChangeText,
+  onSelectMood,
   onSave,
 }: TodayJournalCardProps) {
   const isSaveDisabled = isLoading || isSaving || isSaved || value.trim().length === 0;
@@ -34,6 +40,34 @@ export function TodayJournalCard({
         <View style={styles.sparkleBadge}>
           <Sparkles color={journalColors.green} size={17} strokeWidth={1.6} />
         </View>
+      </View>
+
+      <Text style={styles.moodLabel}>{"I'm feeling..."}</Text>
+      <View style={styles.moodRow}>
+        {MOOD_OPTIONS.map((option) => {
+          const isSelected = option.id === mood;
+          return (
+            <Pressable
+              key={option.id}
+              disabled={isLoading}
+              onPress={() => onSelectMood(option.id)}
+              style={styles.moodOptionColumn}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`Feeling ${option.label}`}
+            >
+              <View style={[styles.moodOption, isSelected && styles.moodOptionSelected]}>
+                <Image source={option.image} style={styles.moodImage} resizeMode="contain" />
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[styles.moodOptionLabel, isSelected && styles.moodOptionLabelSelected]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <TextInput
@@ -107,6 +141,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: journalColors.lightPink,
+  },
+  moodLabel: {
+    marginBottom: 8,
+    fontFamily: 'Raleway-SemiBold',
+    fontSize: 11,
+    color: journalColors.mutedText,
+  },
+  moodRow: {
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  moodOptionColumn: {
+    alignItems: 'center',
+    width: 44,
+  },
+  moodOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: journalColors.white,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  moodOptionSelected: {
+    borderColor: journalColors.green,
+    backgroundColor: journalColors.midGreen,
+  },
+  moodImage: {
+    width: 26,
+    height: 26,
+  },
+  moodOptionLabel: {
+    marginTop: 4,
+    fontFamily: 'Raleway-Regular',
+    fontSize: 9,
+    color: journalColors.mutedText,
+  },
+  moodOptionLabelSelected: {
+    fontFamily: 'Raleway-SemiBold',
+    color: journalColors.ink,
   },
   input: {
     minHeight: 146,
