@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { PlatformPressable } from '@react-navigation/elements';
+import { PlatformPressable } from 'expo-router/react-navigation';
 import { Leaf, Droplet, BookText, Flower2, UserRound } from "lucide-react-native";
 import { ReactElement } from 'react';
 
