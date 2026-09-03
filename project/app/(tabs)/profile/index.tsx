@@ -63,11 +63,13 @@ export default function Profile() {
     <View style={appStyles.backgroundContainer}>
       {/* Profile Section */}
       <View style={appStyles.profileContainer}>
-        <Image
-          source={getGardenerById(selectedGardenerId).image}
-          style={appStyles.profileCircleImage}
-          resizeMode="cover"
-        />
+        <View style={appStyles.profileCircleImageClip}>
+          <Image
+            source={getGardenerById(selectedGardenerId).image}
+            style={appStyles.profileCircleImage}
+            resizeMode="cover"
+          />
+        </View>
         <Text style={appStyles.titleHeadline1}>{name}</Text>
         <Text style={appStyles.subtitleParagraph}> Growing for {growingDays} day{growingDays === 1 ? '' : 's'} </Text>
         <View style={appStyles.profileStatusContainer}>

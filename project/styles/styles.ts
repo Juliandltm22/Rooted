@@ -243,12 +243,17 @@ export const appStyles = StyleSheet.create({
     backgroundColor: '#899878',
     marginTop: 71,
   },
-  profileCircleImage: {
+  profileCircleImageClip: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
     marginTop: 71,
+  },
+  profileCircleImage: {
+    width: '100%',
+    height: '100%',
   },
   profileCircle2: {
     width: 150,
@@ -257,11 +262,16 @@ export const appStyles = StyleSheet.create({
     backgroundColor: '#899878',
     // marginTop: 71,
   },
-  profileCircleImage2: {
+  profileCircleImage2Clip: {
     width: 150,
     height: 150,
     borderRadius: 75,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
+  },
+  profileCircleImage2: {
+    width: '100%',
+    height: '100%',
   },
   profileStatusContainer: {
     flexDirection: 'row',
@@ -769,9 +779,15 @@ export const appStyles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 22,
   },
-  agentLoadingImage: {
+  agentLoadingImageClip: {
     width: 170,
     height: 170,
+    borderRadius: 85,
+    overflow: 'hidden',
+  },
+  agentLoadingImage: {
+    width: '100%',
+    height: '100%',
   },
   agentLoadingTitle: {
     fontFamily: 'Caveat-Regular',
@@ -858,11 +874,16 @@ export const appStyles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  agentPlanAvatar: {
+  agentPlanAvatarClip: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
+  },
+  agentPlanAvatar: {
+    width: '100%',
+    height: '100%',
   },
   agentPlanGreetingText: {
     flex: 1,
