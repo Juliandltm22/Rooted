@@ -1,6 +1,6 @@
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import { useLinkBuilder, useTheme } from '@react-navigation/native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useLinkBuilder, useTheme } from 'expo-router/react-navigation';
+import { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useState } from 'react';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { TabBarButton } from './tab-bar-button';
