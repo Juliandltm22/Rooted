@@ -5,6 +5,8 @@ import { router, useFocusEffect } from "expo-router";
 import { Minus, Plus, ArrowRight } from 'lucide-react-native';
 import { type CareEmotion, useCareResponses } from './care-responses';
 import { MOOD_OPTIONS } from '@/app/lib/moods';
+import { fetchProfileFields } from '@/app/lib/profile';
+import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
 
 export default function Care() {
   const {
@@ -16,6 +18,8 @@ export default function Care() {
     simulateNextDayForDevelopment,
   } = useCareResponses();
   const [isContinuing, setIsContinuing] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
   const { emotion: selectedMood, sleepHours } = responses;
 
   useFocusEffect(
@@ -29,6 +33,27 @@ export default function Care() {
     }, [ensureCurrentDay, gardenPlan]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const [profileFields, gardenerId] = await Promise.all([
+          fetchProfileFields(),
+          fetchSelectedGardenerId(),
+        ]);
+        if (isActive) {
+          setProfileName(profileFields.name);
+          setSelectedGardenerId(gardenerId);
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
+
   const decreaseSleep = () => setSleepHours(Math.max(0, (sleepHours ?? 8) - .5));
   const increaseSleep = () => setSleepHours(Math.min(24, (sleepHours ?? 8) + .5));
   const sleepLabel = sleepHours === 1 ? 'hour' : 'hours';
@@ -40,13 +65,16 @@ export default function Care() {
       <View style={appStyles.careHero}>
         <View style={appStyles.careHeroText}>
           <Text style={appStyles.careGreeting}>
-            Hello <Text style={appStyles.careGreetingName}>Julian</Text>, how are you feeling today?
+            Hello{profileName ? <Text style={appStyles.careGreetingName}> {profileName}</Text> : ''}, how are you feeling today?
           </Text>
         </View>
         <View style={appStyles.careHeroImageWrapper}>
           <Image
-            source={require('@/assets/images/farmer-respira.png')}
-            style={appStyles.careIllustration}
+            source={getGardenerById(selectedGardenerId).farmerImage}
+            style={[
+              appStyles.careIllustration,
+              { transform: [{ translateX: getGardenerById(selectedGardenerId).farmerIllustrationOffsetX }] },
+            ]}
             resizeMode="contain"
           />
         </View>
@@ -79,24 +107,24 @@ export default function Care() {
         </View>
       </View>
 
-       {/* Sleep Section */}
-        <View style={appStyles.sleepContainer}>
-          <Text style={appStyles.sectionLabel}>I slept for...</Text>
-          <View style={appStyles.sleepRow}>
-            <Pressable style={appStyles.sleepButton} onPress={decreaseSleep}>
-              <Minus color="#37423D" size={20} strokeWidth={1.5} />
-            </Pressable>
+      {/* Sleep Section */}
+      <View style={appStyles.sleepContainer}>
+        <Text style={appStyles.sectionLabel}>I slept for...</Text>
+        <View style={appStyles.sleepRow}>
+          <Pressable style={appStyles.sleepButton} onPress={decreaseSleep}>
+            <Minus color="#37423D" size={20} strokeWidth={1.5} />
+          </Pressable>
 
-            <View style={appStyles.sleepHoursWrapper}>
-              <Text style={appStyles.sleepHoursText}>
-                {sleepHours === null ? 'Select hours' : `${sleepHours} ${sleepLabel}`}
-              </Text>
-            </View>
-
-            <Pressable style={appStyles.sleepButton} onPress={increaseSleep}>
-              <Plus color="#37423D" size={20} strokeWidth={1.5} />
-            </Pressable>
+          <View style={appStyles.sleepHoursWrapper}>
+            <Text style={appStyles.sleepHoursText}>
+              {sleepHours === null ? 'Select hours' : `${sleepHours} ${sleepLabel}`}
+            </Text>
           </View>
+
+          <Pressable style={appStyles.sleepButton} onPress={increaseSleep}>
+            <Plus color="#37423D" size={20} strokeWidth={1.5} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Next Button */}

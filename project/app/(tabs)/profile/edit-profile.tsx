@@ -69,7 +69,9 @@ export default function EditProfile() {
     <View style={appStyles.backgroundContainer}>
       <ScreenHeader title="Edit Profile" />
       <View style={appStyles.screenContent}>
-        <Image source={previewImage} style={appStyles.profileCircleImage2} resizeMode="cover" />
+        <View style={appStyles.profileCircleImage2Clip}>
+          <Image source={previewImage} style={appStyles.profileCircleImage2} resizeMode="cover" />
+        </View>
       </View>
       <View style={appStyles.userInputEmail}>
         <View style={appStyles.inputGroup}>

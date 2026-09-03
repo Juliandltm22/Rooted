@@ -15,10 +15,14 @@ import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
 import { useCareResponses } from './care-responses';
+import { fetchProfileFields } from '@/app/lib/profile';
+import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
 
 export default function Care() {
   const { responses, setAdditionalFeelings, ensureCurrentDay } = useCareResponses();
   const [isStartingPlan, setIsStartingPlan] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
   const canStartPlan = Boolean(responses.emotion) && responses.sleepHours !== null;
 
   const handleAdditionalFeelingsChange = (additionalFeelings: string) => {
@@ -39,77 +43,101 @@ export default function Care() {
     }, [ensureCurrentDay]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const [profileFields, gardenerId] = await Promise.all([
+          fetchProfileFields(),
+          fetchSelectedGardenerId(),
+        ]);
+        if (isActive) {
+          setProfileName(profileFields.name);
+          setSelectedGardenerId(gardenerId);
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
+
 
   return (
-  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={appStyles.backgroundContainer}>
-      {/* Hero Section */}
-      <View style={appStyles.careHero}>
-        <View style={appStyles.careHeroText}>
-          <Text style={appStyles.careGreeting}>
-            Hello <Text style={appStyles.careGreetingName}>Julian</Text>, how are you feeling today?
-          </Text>
-        </View>
-        <View style={appStyles.careHeroImageWrapper}>
-          <Image
-            source={require('@/assets/images/farmer-respira.png')}
-            style={appStyles.careIllustration}
-            resizeMode="contain"
-          />
-        </View>
-      </View>
-      {/* User Input Section */}
-      <View style={appStyles.userInputContainer}>
-        <Text style={appStyles.sectionLabel}>Want to share a little more?</Text>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          indicatorStyle='default'
-        >
-          <TextInput
-            style={appStyles.noteInput}
-            value={responses.additionalFeelings}
-            onChangeText={handleAdditionalFeelingsChange}
-            placeholder="Anything on your mind?"
-            placeholderTextColor="#918E8E"
-            multiline={true}
-            maxLength={500}
-            textAlignVertical="top"
-          />
-                      </ScrollView>
-
-        <Text style={appStyles.characterCount}>
-          {responses.additionalFeelings.length}/500
-        </Text>
-</View>
-
-      {/* Next Button */}
-      <View style={appStyles.nextContainer}>
-        <Pressable
-          style={[appStyles.nextButton, (!canStartPlan || isStartingPlan) && appStyles.nextButtonDisabled]}
-          disabled={!canStartPlan || isStartingPlan}
-          onPress={() => {
-            if (ensureCurrentDay()) {
-              setIsStartingPlan(false);
-              router.replace('/care');
-              return;
-            }
-
-            setIsStartingPlan(true);
-            router.push('/care/agent')
-          }}
-        >
-          <Text style={appStyles.nextButtonText}>Talk to my Gardener</Text>
-          <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
-        </Pressable>
+          {/* Hero Section */}
+          <View style={appStyles.careHero}>
+            <View style={appStyles.careHeroText}>
+              <Text style={appStyles.careGreeting}>
+                Hello{profileName ? <Text style={appStyles.careGreetingName}> {profileName}</Text> : ''}, how are you feeling today?
+              </Text>
             </View>
-    </View>
-    </KeyboardAvoidingView>
-</TouchableWithoutFeedback>
+            <View style={appStyles.careHeroImageWrapper}>
+              <Image
+                source={getGardenerById(selectedGardenerId).farmerImage}
+                style={[
+                  appStyles.careIllustration,
+                  { transform: [{ translateX: getGardenerById(selectedGardenerId).farmerIllustrationOffsetX }] },
+                ]}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+          {/* User Input Section */}
+          <View style={appStyles.userInputContainer}>
+            <Text style={appStyles.sectionLabel}>Want to share a little more?</Text>
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+              indicatorStyle='default'
+            >
+              <TextInput
+                style={appStyles.noteInput}
+                value={responses.additionalFeelings}
+                onChangeText={handleAdditionalFeelingsChange}
+                placeholder="Anything on your mind?"
+                placeholderTextColor="#918E8E"
+                multiline={true}
+                maxLength={500}
+                textAlignVertical="top"
+              />
+            </ScrollView>
+
+            <Text style={appStyles.characterCount}>
+              {responses.additionalFeelings.length}/500
+            </Text>
+          </View>
+
+          {/* Next Button */}
+          <View style={appStyles.nextContainer}>
+            <Pressable
+              style={[appStyles.nextButton, (!canStartPlan || isStartingPlan) && appStyles.nextButtonDisabled]}
+              disabled={!canStartPlan || isStartingPlan}
+              onPress={() => {
+                if (ensureCurrentDay()) {
+                  setIsStartingPlan(false);
+                  router.replace('/care');
+                  return;
+                }
+
+                setIsStartingPlan(true);
+                router.push('/care/agent')
+              }}
+            >
+              <Text style={appStyles.nextButtonText}>Talk to my Gardener</Text>
+              <ArrowRight color="#37423D" size={18} strokeWidth={1.8} />
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
