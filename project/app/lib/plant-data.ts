@@ -15,6 +15,7 @@ export interface PlantSnapshot {
   completedTaskCount: number;
   gardenerId: GardenerId;
   latestActivity: PlantLatestActivity | null;
+  latestCompletionKey: string | null;
   potColor: PotColorId;
 }
 
@@ -45,6 +46,12 @@ interface PersistCompletionInput {
 }
 
 const getHistorySyncKey = (userId: string) => `@rooted/plant-history-synced-v1/${userId}`;
+const getSparkleSeenKey = (userId: string) => `@rooted/plant-sparkle-seen-v2/${userId}`;
+
+interface PlantSparkleCheckpoint {
+  completedTaskCount: number;
+  latestCompletionKey: string | null;
+}
 
 async function getAuthenticatedUserId() {
   const { data, error } = await supabase.auth.getUser();
@@ -277,7 +284,7 @@ export async function fetchPlantSnapshot(): Promise<PlantSnapshot> {
       .eq('user_id', userId),
     supabase
       .from('garden_task_completions')
-      .select('task_category, task_title')
+      .select('plan_date, task_id, task_category, task_title, completed_at')
       .eq('user_id', userId)
       .order('completed_at', { ascending: false })
       .limit(1)
@@ -310,6 +317,9 @@ export async function fetchPlantSnapshot(): Promise<PlantSnapshot> {
       ? profileResult.data.avatar_url
       : DEFAULT_GARDENER_ID,
     latestActivity,
+    latestCompletionKey: latestCompletion
+      ? `${latestCompletion.plan_date}/${latestCompletion.task_id}/${latestCompletion.completed_at}`
+      : null,
     potColor: normalizePotColorId(profileResult.data?.pot_color),
   };
 }
@@ -344,20 +354,48 @@ export async function fetchDailyGardenStatus(dateKey: string): Promise<DailyGard
   };
 }
 
-export async function claimGardenPlanCelebration(dateKey: string): Promise<boolean> {
+export async function claimTaskCompletionCelebration({
+  completedTaskCount,
+  latestCompletionKey,
+}: Pick<PlantSnapshot, 'completedTaskCount' | 'latestCompletionKey'>): Promise<boolean> {
   const userId = await getAuthenticatedUserId();
-  const { data, error } = await supabase
-    .from('garden_daily_plans')
-    .update({ celebration_seen_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('plan_date', dateKey)
-    .not('completed_at', 'is', null)
-    .is('celebration_seen_at', null)
-    .select('plan_date');
+  const sparkleSeenKey = getSparkleSeenKey(userId);
+  const storedCheckpoint = await AsyncStorage.getItem(sparkleSeenKey);
+  let checkpoint: PlantSparkleCheckpoint | null = null;
 
-  if (error) {
-    throw error;
+  if (storedCheckpoint) {
+    try {
+      const parsedCheckpoint = JSON.parse(storedCheckpoint) as Partial<PlantSparkleCheckpoint>;
+      if (
+        typeof parsedCheckpoint.completedTaskCount === 'number' &&
+        (typeof parsedCheckpoint.latestCompletionKey === 'string' ||
+          parsedCheckpoint.latestCompletionKey === null)
+      ) {
+        checkpoint = {
+          completedTaskCount: parsedCheckpoint.completedTaskCount,
+          latestCompletionKey: parsedCheckpoint.latestCompletionKey,
+        };
+      }
+    } catch {
+      // A malformed checkpoint is treated as an unseen completion.
+    }
   }
 
-  return (data?.length ?? 0) > 0;
+  if (checkpoint?.latestCompletionKey === latestCompletionKey) {
+    return false;
+  }
+
+  const nextCheckpoint: PlantSparkleCheckpoint = {
+    completedTaskCount,
+    latestCompletionKey,
+  };
+  await AsyncStorage.setItem(sparkleSeenKey, JSON.stringify(nextCheckpoint));
+
+  if (!latestCompletionKey) {
+    return false;
+  }
+
+  // A lower count means a task was unchecked, which should update the
+  // checkpoint without playing a completion celebration.
+  return checkpoint === null || completedTaskCount >= checkpoint.completedTaskCount;
 }

@@ -1,12 +1,23 @@
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import {
+  setAudioModeAsync,
+  type AudioSource,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { ArrowLeft, Check, Heart, Moon, Pause, PersonStanding, Play, Sparkles, Volume2, VolumeX, Wind } from 'lucide-react-native';
 import { appStyles } from '@/styles/styles';
-import { getAmbientAudioUrl, getGuidedVoiceAudioUrl } from '@/app/lib/guided-audio';
-import { createGuidedSessionPlan, getBreathingPhase, type GuidedSessionCue } from '@/app/lib/guided-session';
+import { getAmbientAudioSource } from '@/app/lib/guided-audio';
+import {
+  getActiveDisplayCue,
+  getBreathingPhase,
+  type VoiceCue,
+} from '@/app/lib/activity-scripts';
+import { speakGuidedCue, stopGuidedSpeech } from '@/app/lib/device-speech';
+import { createGuidedSessionPlan } from '@/app/lib/guided-session';
 import { useGuidedNavigationGuard } from '@/app/lib/use-guided-navigation-guard';
 import { useGuidedSession } from '@/app/lib/use-guided-session';
 import { useCareResponses } from '../care-responses';
@@ -42,7 +53,6 @@ function safePause(player: { pause: () => void }) {
 export default function GuidedSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    responses,
     gardenPlan,
     careDate,
     completeTask,
@@ -50,23 +60,34 @@ export default function GuidedSession() {
   } = useCareResponses();
   const task = gardenPlan?.tasks.find((gardenTask) => gardenTask.id === id);
   const sessionPlan = useMemo(
-    () => (task ? createGuidedSessionPlan(task, responses) : null),
-    [responses, task],
+    () => (task ? createGuidedSessionPlan(task) : null),
+    [task],
   );
+  const ambientAudioSource = useMemo(() => getAmbientAudioSource(), []);
   const sessionPlanRef = useRef(sessionPlan);
   const sessionDateRef = useRef(careDate);
   const allowNavigationRef = useRef<() => void>(() => undefined);
-  const playedCueIdsRef = useRef(new Set<string>());
+  const playedCueKeysRef = useRef(new Set<string>());
+  const voiceAvailableRef = useRef(true);
   const voiceEnabledRef = useRef(true);
-  const audioPlaybackGenerationRef = useRef(0);
+  const speechGenerationRef = useRef(0);
+  const lastMusicPlaybackErrorRef = useRef<string | null>(null);
+  const musicSourceLoadedRef = useRef(false);
+  const audioLifecycleActiveRef = useRef(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(sessionPlan?.musicRecommended ?? false);
+  const [voiceUnavailable, setVoiceUnavailable] = useState(false);
   const [audioNotice, setAudioNotice] = useState<string | null>(null);
-  const voicePlayer = useAudioPlayer(null, { downloadFirst: true, keepAudioSessionActive: true });
   const musicPlayer = useAudioPlayer(null, { downloadFirst: true, keepAudioSessionActive: true });
+  const musicStatus = useAudioPlayerStatus(musicPlayer);
 
-  sessionPlanRef.current = sessionPlan;
-  voiceEnabledRef.current = voiceEnabled;
+  useEffect(() => {
+    sessionPlanRef.current = sessionPlan;
+  }, [sessionPlan]);
+
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled;
+  }, [voiceEnabled]);
 
   const handleSessionComplete = useCallback(() => {
     const currentPlan = sessionPlanRef.current;
@@ -89,24 +110,33 @@ export default function GuidedSession() {
     onComplete: handleSessionComplete,
   });
   const sessionStatusRef = useRef(session.status);
-  sessionStatusRef.current = session.status;
+  useEffect(() => {
+    sessionStatusRef.current = session.status;
+  }, [session.status]);
 
   const stopAudio = useCallback(() => {
-    safePause(voicePlayer);
+    speechGenerationRef.current += 1;
+    void stopGuidedSpeech();
     safePause(musicPlayer);
-  }, [musicPlayer, voicePlayer]);
+  }, [musicPlayer]);
+
+  const cleanUpAudio = useCallback(() => {
+    audioLifecycleActiveRef.current = false;
+    stopAudio();
+  }, [stopAudio]);
 
   const cleanUpUnfinishedSession = useCallback(() => {
-    audioPlaybackGenerationRef.current += 1;
     session.cancel();
-    stopAudio();
-  }, [session, stopAudio]);
+    cleanUpAudio();
+  }, [cleanUpAudio, session]);
 
   const navigationGuard = useGuidedNavigationGuard({
     isSessionUnfinished: session.status === 'running' || session.status === 'paused',
     onLeaveSession: cleanUpUnfinishedSession,
   });
-  allowNavigationRef.current = navigationGuard.allowNextNavigation;
+  useEffect(() => {
+    allowNavigationRef.current = navigationGuard.allowNextNavigation;
+  }, [navigationGuard.allowNextNavigation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -126,6 +156,7 @@ export default function GuidedSession() {
 
   useEffect(() => {
     void setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' }).catch(() => {
+      console.warn('[guided-session] Expo Audio could not configure the playback session.');
       setAudioNotice('Audio is unavailable right now. Your session can continue silently.');
     });
   }, []);
@@ -136,82 +167,118 @@ export default function GuidedSession() {
       return;
     }
 
-    const musicUrl = getAmbientAudioUrl();
-    if (!musicUrl) {
-      setAudioNotice('Ambient music is not configured, but your session can continue normally.');
+    if (!ambientAudioSource) {
       return;
     }
 
     try {
-      musicPlayer.loop = true;
-      musicPlayer.replace(musicUrl);
-      musicPlayer.play();
-    } catch {
-      setAudioNotice('Ambient music could not play. Your session can continue normally.');
+      if (musicSourceLoadedRef.current) {
+        resumeAudioPlayer(musicPlayer, 0.22);
+      } else {
+        startAudioPlayer(musicPlayer, ambientAudioSource, { loop: true, volume: 0.22 });
+        musicSourceLoadedRef.current = true;
+      }
+    } catch (error) {
+      console.warn('[guided-session] Ambient audio playback failed.', error);
     }
-  }, [musicEnabled, musicPlayer, session.status]);
+  }, [ambientAudioSource, musicEnabled, musicPlayer, session.status]);
 
   useEffect(() => {
     if (session.status === 'running' && voiceEnabled) {
       return;
     }
 
-    safePause(voicePlayer);
-  }, [session.status, voiceEnabled, voicePlayer]);
+    speechGenerationRef.current += 1;
+    void stopGuidedSpeech();
+    if (audioLifecycleActiveRef.current) {
+      safeSetPlayerVolume(musicPlayer, 0.22);
+    }
+  }, [musicPlayer, session.status, voiceEnabled]);
 
-  const playCue = useCallback(async (guidedCue: GuidedSessionCue) => {
-    const currentPlan = sessionPlanRef.current;
-    const playbackGeneration = audioPlaybackGenerationRef.current;
-    if (!currentPlan) {
+  const markVoiceUnavailable = useCallback((cue: VoiceCue, error: unknown) => {
+    voiceAvailableRef.current = false;
+    setVoiceUnavailable(true);
+    console.warn(`[guided-session] Device TTS failed for cue "${cue.id}".`, error);
+  }, []);
+
+  useEffect(() => {
+    if (!musicStatus.error) {
+      lastMusicPlaybackErrorRef.current = null;
+      return;
+    }
+    if (lastMusicPlaybackErrorRef.current === musicStatus.error) {
+      return;
+    }
+
+    lastMusicPlaybackErrorRef.current = musicStatus.error;
+    console.warn('[guided-session] Ambient audio playback failed.', musicStatus.error);
+  }, [musicStatus.error]);
+
+  const playCue = useCallback(async (guidedCue: VoiceCue) => {
+    const speechGeneration = ++speechGenerationRef.current;
+    if (!voiceAvailableRef.current) {
       return;
     }
 
     try {
-      const audioUrl = await getGuidedVoiceAudioUrl(
-        guidedCue.text,
-        `guided-v1-${currentPlan.type}-${guidedCue.cacheKey ?? guidedCue.id}`,
-      );
+      await stopGuidedSpeech();
 
       if (
-        playbackGeneration !== audioPlaybackGenerationRef.current ||
+        speechGeneration !== speechGenerationRef.current ||
+        !audioLifecycleActiveRef.current ||
         !voiceEnabledRef.current ||
         sessionStatusRef.current !== 'running'
       ) {
         return;
       }
 
-      voicePlayer.replace(audioUrl);
-      voicePlayer.play();
-    } catch {
+      if (musicEnabled) {
+        safeSetPlayerVolume(musicPlayer, 0.12);
+      }
+      await speakGuidedCue(guidedCue.text);
+    } catch (error) {
+      if (speechGeneration === speechGenerationRef.current) {
+        markVoiceUnavailable(guidedCue, error);
+      }
+    } finally {
       if (
-        playbackGeneration === audioPlaybackGenerationRef.current &&
-        sessionStatusRef.current === 'running'
+        speechGeneration === speechGenerationRef.current &&
+        audioLifecycleActiveRef.current &&
+        musicEnabled
       ) {
-        setAudioNotice('Voice guidance is unavailable right now. You can continue with the on-screen prompts.');
+        safeSetPlayerVolume(musicPlayer, 0.22);
       }
     }
-  }, [voicePlayer]);
+  }, [markVoiceUnavailable, musicEnabled, musicPlayer]);
 
-  useEffect(() => () => {
-    audioPlaybackGenerationRef.current += 1;
-    stopAudio();
-  }, [stopAudio]);
+  useEffect(() => {
+    audioLifecycleActiveRef.current = true;
+    return () => {
+      cleanUpAudio();
+    };
+  }, [cleanUpAudio]);
 
   useEffect(() => {
     if (!sessionPlan || session.status !== 'running') {
       return;
     }
 
-    const dueCues = sessionPlan.cues.filter((guidedCue) =>
-      guidedCue.atSecond <= session.elapsedSeconds && !playedCueIdsRef.current.has(guidedCue.id),
-    );
+    const elapsedMs = session.elapsedSeconds * 1000;
+    const dueCues = sessionPlan.voiceCues.filter((guidedCue) => {
+      const cueKey = `${guidedCue.id}@${guidedCue.atMs}`;
+      return guidedCue.atMs <= elapsedMs && !playedCueKeysRef.current.has(cueKey);
+    });
 
     dueCues.forEach((guidedCue) => {
-      playedCueIdsRef.current.add(guidedCue.id);
-      if (voiceEnabledRef.current) {
-        void playCue(guidedCue);
-      }
+      playedCueKeysRef.current.add(`${guidedCue.id}@${guidedCue.atMs}`);
     });
+
+    // If the app skipped across several cue times, only play the newest one.
+    // All earlier cues stay marked as handled and are never replayed later.
+    const currentCue = dueCues.at(-1);
+    if (currentCue && voiceEnabledRef.current && voiceAvailableRef.current) {
+      void playCue(currentCue);
+    }
   }, [playCue, session.elapsedSeconds, session.status, sessionPlan]);
 
   useEffect(() => {
@@ -219,8 +286,8 @@ export default function GuidedSession() {
       return;
     }
 
-    stopAudio();
-  }, [session.status, stopAudio]);
+    cleanUpAudio();
+  }, [cleanUpAudio, session.status]);
 
   if (!sessionPlan) {
     return null;
@@ -228,15 +295,34 @@ export default function GuidedSession() {
 
   const ActivityIcon = activityIcons[sessionPlan.type];
   const activityColor = activityColors[sessionPlan.type];
+  const elapsedMs = session.elapsedSeconds * 1000;
   const breathingPhase = sessionPlan.type === 'breathing'
-    ? getBreathingPhase(session.elapsedSeconds)
+    ? getBreathingPhase(elapsedMs)
     : null;
+  const activeDisplayCue = getActiveDisplayCue(sessionPlan, elapsedMs);
+  const hasVoiceGuidance = sessionPlan.voiceCues.length > 0;
   const isReady = session.status === 'ready';
   const isPaused = session.status === 'paused';
   const isCompleted = session.status === 'completed';
+  const availabilityNotice = session.status === 'running'
+    ? voiceEnabled && voiceUnavailable
+      ? 'Voice guidance is unavailable right now. You can continue with the on-screen prompts.'
+      : musicEnabled && (!ambientAudioSource || Boolean(musicStatus.error))
+        ? 'Ambient music is unavailable right now. Your session can continue normally.'
+        : null
+    : null;
 
   const toggleVoice = () => {
-    setVoiceEnabled((isEnabled) => !isEnabled);
+    const nextVoiceEnabled = !voiceEnabled;
+    voiceEnabledRef.current = nextVoiceEnabled;
+    if (!nextVoiceEnabled) {
+      speechGenerationRef.current += 1;
+      void stopGuidedSpeech();
+      if (audioLifecycleActiveRef.current) {
+        safeSetPlayerVolume(musicPlayer, 0.22);
+      }
+    }
+    setVoiceEnabled(nextVoiceEnabled);
   };
 
   const toggleMusic = () => {
@@ -302,14 +388,29 @@ export default function GuidedSession() {
             <>
               <Text style={appStyles.guidedTimer}>{formatTime(session.remainingSeconds)}</Text>
               {breathingPhase ? (
-                <View style={appStyles.guidedPhaseBlock}>
+                <View style={appStyles.guidedPhaseBlock} accessibilityLiveRegion="polite">
                   <Text style={appStyles.guidedPhaseTitle}>{breathingPhase.label}</Text>
-                  <Text style={appStyles.guidedPhaseText}>{breathingPhase.detail}</Text>
+                  <Text style={appStyles.guidedPhaseCount}>{breathingPhase.count}</Text>
                 </View>
-              ) : (
-                <Text style={appStyles.guidedActivePrompt}>
-                  {isPaused ? 'Take your time. Resume whenever you are ready.' : 'There is no need to rush this moment.'}
-                </Text>
+              ) : activeDisplayCue ? (
+                <View style={appStyles.guidedGuidanceBlock} accessibilityLiveRegion="polite">
+                  {activeDisplayCue.label && (
+                    <Text style={appStyles.guidedGuidanceLabel}>{activeDisplayCue.label}</Text>
+                  )}
+                  <Text
+                    style={[
+                      appStyles.guidedGuidanceText,
+                      sessionPlan.type === 'affirmations' &&
+                        activeDisplayCue.label === 'Repeat after me' &&
+                        appStyles.guidedAffirmationText,
+                    ]}
+                  >
+                    {activeDisplayCue.text}
+                  </Text>
+                </View>
+              ) : null}
+              {isPaused && (
+                <Text style={appStyles.guidedPausedText}>Paused. Resume whenever you are ready.</Text>
               )}
             </>
           )}
@@ -319,29 +420,35 @@ export default function GuidedSession() {
           )}
 
           <View style={appStyles.guidedAudioControls}>
-            <Pressable
-              style={[appStyles.guidedAudioControl, !voiceEnabled && appStyles.guidedAudioControlMuted]}
-              onPress={toggleVoice}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: voiceEnabled }}
-              accessibilityLabel={`Voice guidance ${voiceEnabled ? 'on' : 'off'}`}
-            >
-              {voiceEnabled ? <Volume2 color="#37423D" size={18} /> : <VolumeX color="#6B716D" size={18} />}
-              <Text style={appStyles.guidedAudioControlText}>Voice {voiceEnabled ? 'on' : 'off'}</Text>
-            </Pressable>
+            {hasVoiceGuidance && (
+              <Pressable
+                style={[appStyles.guidedAudioControl, !voiceEnabled && appStyles.guidedAudioControlMuted]}
+                onPress={toggleVoice}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: voiceEnabled }}
+                accessibilityLabel={`Voice guidance ${voiceEnabled ? 'on' : 'off'}`}
+                accessibilityHint="Toggles spoken guidance without pausing the activity"
+              >
+                {voiceEnabled ? <Volume2 color="#37423D" size={18} /> : <VolumeX color="#6B716D" size={18} />}
+                <Text style={appStyles.guidedAudioControlText}>Voice {voiceEnabled ? 'on' : 'off'}</Text>
+              </Pressable>
+            )}
             <Pressable
               style={[appStyles.guidedAudioControl, !musicEnabled && appStyles.guidedAudioControlMuted]}
               onPress={toggleMusic}
               accessibilityRole="switch"
               accessibilityState={{ checked: musicEnabled }}
               accessibilityLabel={`Ambient music ${musicEnabled ? 'on' : 'off'}`}
+              accessibilityHint="Toggles ambient sound without affecting voice guidance"
             >
               {musicEnabled ? <Sparkles color="#37423D" size={18} /> : <VolumeX color="#6B716D" size={18} />}
               <Text style={appStyles.guidedAudioControlText}>Music {musicEnabled ? 'on' : 'off'}</Text>
             </Pressable>
           </View>
 
-          {audioNotice && <Text style={appStyles.guidedAudioNotice}>{audioNotice}</Text>}
+          {(audioNotice ?? availabilityNotice) && (
+            <Text style={appStyles.guidedAudioNotice}>{audioNotice ?? availabilityNotice}</Text>
+          )}
 
           {isReady ? (
             <Pressable
@@ -398,4 +505,34 @@ export default function GuidedSession() {
       </Modal>
     </View>
   );
+}
+
+function startAudioPlayer(
+  player: {
+    loop: boolean;
+    volume: number;
+    replace: (source: AudioSource) => void;
+    play: () => void;
+  },
+  source: AudioSource,
+  { loop, volume }: { loop: boolean; volume: number },
+) {
+  player.loop = loop;
+  player.volume = volume;
+  player.replace(source);
+  player.play();
+}
+
+function safeSetPlayerVolume(player: { volume: number }, volume: number) {
+  try {
+    player.volume = volume;
+  } catch {
+    // Expo Audio may release its native player before an async TTS callback settles.
+  }
+}
+
+function resumeAudioPlayer(player: { loop: boolean; volume: number; play: () => void }, volume: number) {
+  player.loop = true;
+  player.volume = volume;
+  player.play();
 }

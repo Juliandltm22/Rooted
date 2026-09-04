@@ -12,7 +12,11 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RefreshCw, X } from 'lucide-react-native';
 import { MY_PLANT_BACKGROUNDS, getPlantImage } from '@/app/lib/plant-assets';
-import { claimGardenPlanCelebration, fetchPlantSnapshot, type PlantSnapshot } from '@/app/lib/plant-data';
+import {
+  claimTaskCompletionCelebration,
+  fetchPlantSnapshot,
+  type PlantSnapshot,
+} from '@/app/lib/plant-data';
 import { getPlantStage } from '@/app/lib/plant-growth';
 import { getGardenerById } from '@/app/lib/gardener';
 import { getApproximateCoordinates } from '@/app/lib/plant-location';
@@ -22,7 +26,6 @@ import {
   type ApproximateCoordinates,
   type PlantTimeOfDay,
 } from '@/app/lib/plant-time';
-import { getLocalDateKey } from '@/app/lib/local-date';
 import { supabase } from '@/app/lib/supabase';
 import { GardenerBubble } from '@/components/gardener-bubble';
 import { PlantSparkles } from '@/components/plant-sparkles';
@@ -87,7 +90,7 @@ export default function MyPlant() {
           setSnapshot(nextSnapshot);
           refreshClock();
 
-          const shouldCelebrate = await claimGardenPlanCelebration(getLocalDateKey());
+          const shouldCelebrate = await claimTaskCompletionCelebration(nextSnapshot);
           if (isActive && shouldCelebrate) {
             setSparklePlayKey((currentKey) => currentKey + 1);
           }
