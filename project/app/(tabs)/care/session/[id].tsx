@@ -31,6 +31,14 @@ function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds}`;
 }
 
+function safePause(player: { pause: () => void }) {
+  try {
+    player.pause();
+  } catch {
+    // No active playback to pause; nothing to clean up.
+  }
+}
+
 export default function GuidedSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
@@ -84,8 +92,8 @@ export default function GuidedSession() {
   sessionStatusRef.current = session.status;
 
   const stopAudio = useCallback(() => {
-    voicePlayer.pause();
-    musicPlayer.pause();
+    safePause(voicePlayer);
+    safePause(musicPlayer);
   }, [musicPlayer, voicePlayer]);
 
   const cleanUpUnfinishedSession = useCallback(() => {
@@ -124,7 +132,7 @@ export default function GuidedSession() {
 
   useEffect(() => {
     if (session.status !== 'running' || !musicEnabled) {
-      musicPlayer.pause();
+      safePause(musicPlayer);
       return;
     }
 
@@ -148,7 +156,7 @@ export default function GuidedSession() {
       return;
     }
 
-    voicePlayer.pause();
+    safePause(voicePlayer);
   }, [session.status, voiceEnabled, voicePlayer]);
 
   const playCue = useCallback(async (guidedCue: GuidedSessionCue) => {
@@ -161,7 +169,7 @@ export default function GuidedSession() {
     try {
       const audioUrl = await getGuidedVoiceAudioUrl(
         guidedCue.text,
-        `guided-v1-${currentPlan.type}-${guidedCue.id}`,
+        `guided-v1-${currentPlan.type}-${guidedCue.cacheKey ?? guidedCue.id}`,
       );
 
       if (

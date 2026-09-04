@@ -10,6 +10,7 @@ export interface GuidedSessionCue {
   id: string;
   atSecond: number;
   text: string;
+  cacheKey?: string;
 }
 
 export interface GuidedSessionPlan {
@@ -31,7 +32,6 @@ export interface StretchInstruction {
   instruction: string;
 }
 
-/** Beginner-friendly movements only. Gardener copy may frame these, never invent them. */
 export const GENTLE_STRETCH_LIBRARY: StretchInstruction[] = [
   {
     id: 'shoulder-rolls',
@@ -115,21 +115,33 @@ function getAffirmations({ emotion, sleepHours, additionalFeelings }: CareRespon
   return defaultAffirmations;
 }
 
-function cue(id: string, atSecond: number, text: string): GuidedSessionCue {
-  return { id, atSecond, text };
+function cue(id: string, atSecond: number, text: string, cacheKey?: string): GuidedSessionCue {
+  return { id, atSecond, text, cacheKey };
 }
 
+const BREATHING_PHASE_SECONDS = 4;
+
+
 function getBreathingCues(durationSeconds: number): GuidedSessionCue[] {
-  const cues = [
-    cue('breathe-intro', 0, 'Let’s begin Box Breathing. Breathe in slowly for four.'),
-    cue('breathe-hold-one', 4, 'Hold.'),
-    cue('breathe-out-one', 8, 'Now slowly breathe out for four.'),
-    cue('breathe-hold-two', 12, 'Hold.'),
+  const phases = [
+    { cacheKey: 'breathe-in', text: 'Breathe in slowly for four.' },
+    { cacheKey: 'breathe-hold', text: 'Hold.' },
+    { cacheKey: 'breathe-out', text: 'Now breathe out slowly for four.' },
+    { cacheKey: 'breathe-hold', text: 'Hold.' },
   ];
 
-  // The cadence is visual and time-engine controlled every 4 seconds. Spoken cues are intentionally sparse.
-  for (let second = 64; second < durationSeconds; second += 64) {
-    cues.push(cue(`breathe-reminder-${second}`, second, 'Begin another calm Box Breath when you are ready.'));
+  const cues: GuidedSessionCue[] = [];
+
+  for (let second = 0; second < durationSeconds; second += BREATHING_PHASE_SECONDS) {
+    const phase = phases[Math.floor(second / BREATHING_PHASE_SECONDS) % phases.length];
+    const isIntro = second === 0;
+
+    cues.push(cue(
+      `breathe-${second}`,
+      second,
+      isIntro ? `Let’s begin Box Breathing. ${phase.text}` : phase.text,
+      isIntro ? 'breathe-intro' : phase.cacheKey,
+    ));
   }
 
   return cues;

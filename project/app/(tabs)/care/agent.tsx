@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useNavigation } from 'expo-router/react-navigation';
 import { ArrowRight, Check, Droplets, Heart, Leaf, Moon, PersonStanding, RefreshCw, Sparkles, Wind } from 'lucide-react-native';
 import { appStyles } from '@/styles/styles';
 import { generateGardenPlan, getGuidedActivityConfig, isGuidedGardenTask, type GardenTask, type GardenTaskCategory } from '@/app/lib/garden-plan';
@@ -48,6 +49,7 @@ export default function Agent() {
     simulateNextDayForDevelopment,
   } = useCareResponses();
   const plan = gardenPlan;
+  const navigation = useNavigation();
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [profileName, setProfileName] = useState('');
@@ -198,6 +200,31 @@ export default function Agent() {
       };
     }, []),
   );
+
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: !isGenerating });
+  }, [isGenerating, navigation]);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, [isGenerating]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      if (!isGenerating) {
+        return;
+      }
+
+      event.preventDefault();
+    });
+
+    return unsubscribe;
+  }, [isGenerating, navigation]);
 
   useEffect(() => {
     if (!isGenerating) {
