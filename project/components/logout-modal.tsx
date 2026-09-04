@@ -1,4 +1,5 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { appStyles } from '@/styles/styles';
 
@@ -9,17 +10,37 @@ type LogoutModalProps = {
 };
 
 export function LogoutModal({ visible, onClose, onConfirm }: LogoutModalProps) {
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(40)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    backdropOpacity.setValue(0);
+    sheetTranslateY.setValue(40);
+    Animated.parallel([
+      Animated.timing(backdropOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(sheetTranslateY, { toValue: 0, duration: 240, useNativeDriver: true }),
+    ]).start();
+  }, [backdropOpacity, sheetTranslateY, visible]);
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType='slide'
+      animationType='none'
       onRequestClose={onClose}
     >
       <View style={appStyles.modalOverlay}>
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}
+        />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        <View style={appStyles.modalSheet}>
+        <Animated.View style={[appStyles.modalSheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <View style={appStyles.modalHeader}>
             <Pressable onPress={onClose} hitSlop={10}>
               <X color="#37423D" size={24} strokeWidth={1.5} />
@@ -39,8 +60,14 @@ export function LogoutModal({ visible, onClose, onConfirm }: LogoutModalProps) {
               <Text style={appStyles.modalConfirmText}>Yes, Logout</Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  backdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+});

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { X } from 'lucide-react-native';
 import {
   DEFAULT_GARDENER_ID,
   fetchSelectedGardenerId,
@@ -11,7 +12,7 @@ import { GardenerBubble } from '@/components/gardener-bubble';
 import { usePlantNotification } from '@/context/plant-notification-context';
 
 export function PlantGardenerNotification() {
-  const { notification } = usePlantNotification();
+  const { notification, hidePlantNotification } = usePlantNotification();
   const insets = useSafeAreaInsets();
   const [gardenerId, setGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
 
@@ -42,17 +43,27 @@ export function PlantGardenerNotification() {
 
   return (
     <View
-      pointerEvents="none"
       style={[styles.overlay, { top: insets.top + 10 }]}
     >
-      <GardenerBubble
-        key={notification.id}
-        title={title}
-        message={notification.message}
-        avatarSource={getGardenerById(gardenerId).image}
-        accessibilityLiveRegion="polite"
-        style={styles.bubble}
-      />
+      <View style={styles.notificationPanel}>
+        <GardenerBubble
+          key={notification.id}
+          title={title}
+          message={notification.message}
+          avatarSource={getGardenerById(gardenerId).image}
+          accessibilityLiveRegion="polite"
+          style={styles.bubble}
+        />
+        <Pressable
+          accessibilityLabel="Dismiss notification"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={hidePlantNotification}
+          style={styles.closeButton}
+        >
+          <X color="#37423D" size={18} strokeWidth={2} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -65,8 +76,22 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     elevation: 20,
   },
+  notificationPanel: {
+    position: 'relative',
+  },
   bubble: {
     borderWidth: 1,
     borderColor: '#E8E6D7',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+    backgroundColor: 'rgba(252, 249, 237, 0.82)',
   },
 });

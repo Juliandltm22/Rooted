@@ -13,7 +13,7 @@ export function ScreenHeader({ title }: ScreenHeaderProps) {
       <Pressable onPress={() => router.back()} hitSlop={10}>
         <ChevronLeft color="#37423D" size={30} />
       </Pressable>
-      <Text style={appStyles.titleHeadline2}>{title}</Text>
+      <Text style={[appStyles.titleHeadline2, { flexShrink: 1, textAlign: 'center' }]}>{title}</Text>
       <View style={{ width: 26 }} />
     </View>
   );

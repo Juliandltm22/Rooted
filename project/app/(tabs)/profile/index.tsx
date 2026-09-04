@@ -8,6 +8,24 @@ import { NotificationModal } from '@/components/notification-modal';
 import { supabase } from '../../lib/supabase'
 import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
 import { fetchProfileFields, fetchGrowingDays } from '@/app/lib/profile';
+import { fetchDailyGardenStatus } from '@/app/lib/plant-data';
+import { getLocalDateKey } from '@/app/lib/local-date';
+
+const getDailyStatus = (completedTaskCount: number, taskCount: number) => {
+  if (taskCount === 0 || completedTaskCount === 0) {
+    return { label: 'Ready to grow', color: '#DDE7C7' };
+  }
+
+  if (completedTaskCount >= taskCount) {
+    return { label: 'Thriving', color: '#B9CCA4' };
+  }
+
+  if (completedTaskCount / taskCount >= 0.66) {
+    return { label: 'Shining', color: '#E8D8B8' };
+  }
+
+  return { label: 'Growing', color: '#DDE7C7' };
+};
 
 
 export default function Profile() {
@@ -16,21 +34,24 @@ export default function Profile() {
   const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
   const [name, setName] = useState('');
   const [growingDays, setGrowingDays] = useState(0);
+  const [dailyStatus, setDailyStatus] = useState(() => getDailyStatus(0, 0));
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
 
       (async () => {
-        const [gardenerId, profileFields, days] = await Promise.all([
+        const [gardenerId, profileFields, days, gardenStatus] = await Promise.all([
           fetchSelectedGardenerId(),
           fetchProfileFields(),
           fetchGrowingDays(),
+          fetchDailyGardenStatus(getLocalDateKey()),
         ]);
         if (isActive) {
           setSelectedGardenerId(gardenerId);
           setName(profileFields.name);
           setGrowingDays(days);
+          setDailyStatus(getDailyStatus(gardenStatus.completedTaskCount, gardenStatus.taskCount));
         }
       })();
 
@@ -51,11 +72,6 @@ export default function Profile() {
   };
 
   const handleNotification = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      Alert.alert(error.message)
-      return
-    }
     setNotificationVisible(false);
   };
 
@@ -73,8 +89,8 @@ export default function Profile() {
         <Text style={appStyles.titleHeadline1}>{name}</Text>
         <Text style={appStyles.subtitleParagraph}> Growing for {growingDays} day{growingDays === 1 ? '' : 's'} </Text>
         <View style={appStyles.profileStatusContainer}>
-          <View style={appStyles.statsContainer}>
-            <Text style={appStyles.subtitleParagraph}>Thriving</Text>
+          <View style={[appStyles.statsContainer, { backgroundColor: dailyStatus.color }]}>
+            <Text style={[appStyles.subtitleParagraph, { color: '#37423D' }]}>{dailyStatus.label}</Text>
           </View>
         </View>
       </View>

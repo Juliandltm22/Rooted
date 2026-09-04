@@ -1,17 +1,36 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CARE_DAYS_STORAGE_KEY } from '@/app/lib/care-history';
-import { normalizeGardenPlan, type GardenPlan, type GardenTask } from '@/app/lib/garden-plan';
+import {
+  isGardenTaskCategory,
+  normalizeGardenPlan,
+  type GardenPlan,
+  type GardenTask,
+  type GardenTaskCategory,
+} from '@/app/lib/garden-plan';
+import { DEFAULT_GARDENER_ID, isGardenerId, type GardenerId } from '@/app/lib/gardener';
 import { normalizePotColorId, type PotColorId } from '@/app/lib/pot';
 import { supabase } from '@/app/lib/supabase';
 
 export interface PlantSnapshot {
   completedTaskCount: number;
+  gardenerId: GardenerId;
+  latestActivity: PlantLatestActivity | null;
   potColor: PotColorId;
+}
+
+export interface PlantLatestActivity {
+  category: GardenTaskCategory;
+  title: string;
 }
 
 export interface PersistedCompletionResult {
   isNewCompletion: boolean;
   isPlanComplete: boolean;
+}
+
+export interface DailyGardenStatus {
+  completedTaskCount: number;
+  taskCount: number;
 }
 
 interface StoredCareDay {
@@ -246,16 +265,23 @@ export async function fetchPlantSnapshot(): Promise<PlantSnapshot> {
   // the persisted ledger without ever duplicating a task completion.
   await syncStoredGardenHistory(userId);
 
-  const [profileResult, completionResult] = await Promise.all([
+  const [profileResult, completionResult, latestCompletionResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select('pot_color')
+      .select('pot_color, avatar_url')
       .eq('id', userId)
       .maybeSingle(),
     supabase
       .from('garden_task_completions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
+    supabase
+      .from('garden_task_completions')
+      .select('task_category, task_title')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (profileResult.error) {
@@ -266,9 +292,55 @@ export async function fetchPlantSnapshot(): Promise<PlantSnapshot> {
     throw completionResult.error;
   }
 
+  if (latestCompletionResult.error) {
+    throw latestCompletionResult.error;
+  }
+
+  const latestCompletion = latestCompletionResult.data;
+  const latestActivity = latestCompletion && isGardenTaskCategory(latestCompletion.task_category)
+    ? {
+        category: latestCompletion.task_category,
+        title: latestCompletion.task_title,
+      }
+    : null;
+
   return {
     completedTaskCount: completionResult.count ?? 0,
+    gardenerId: isGardenerId(profileResult.data?.avatar_url)
+      ? profileResult.data.avatar_url
+      : DEFAULT_GARDENER_ID,
+    latestActivity,
     potColor: normalizePotColorId(profileResult.data?.pot_color),
+  };
+}
+
+export async function fetchDailyGardenStatus(dateKey: string): Promise<DailyGardenStatus> {
+  const userId = await getAuthenticatedUserId();
+
+  const [planResult, completionResult] = await Promise.all([
+    supabase
+      .from('garden_daily_plans')
+      .select('task_count')
+      .eq('user_id', userId)
+      .eq('plan_date', dateKey)
+      .maybeSingle(),
+    supabase
+      .from('garden_task_completions')
+      .select('task_id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('plan_date', dateKey),
+  ]);
+
+  if (planResult.error) {
+    throw planResult.error;
+  }
+  if (completionResult.error) {
+    throw completionResult.error;
+  }
+
+  return {
+    taskCount: planResult.data?.task_count ?? 0,
+    completedTaskCount: completionResult.count ?? 0,
   };
 }
 

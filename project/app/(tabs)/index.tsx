@@ -10,11 +10,13 @@ import {
 import { Redirect, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, X } from 'lucide-react-native';
 import { MY_PLANT_BACKGROUNDS, getPlantImage } from '@/app/lib/plant-assets';
 import { claimGardenPlanCelebration, fetchPlantSnapshot, type PlantSnapshot } from '@/app/lib/plant-data';
-import { getNextGrowthThreshold, getPlantStage } from '@/app/lib/plant-growth';
+import { getPlantStage } from '@/app/lib/plant-growth';
+import { getGardenerById } from '@/app/lib/gardener';
 import { getApproximateCoordinates } from '@/app/lib/plant-location';
+import { getPlantCareMotivation } from '@/app/lib/plant-notification-copy';
 import {
   getPlantTimeOfDay,
   type ApproximateCoordinates,
@@ -22,6 +24,7 @@ import {
 } from '@/app/lib/plant-time';
 import { getLocalDateKey } from '@/app/lib/local-date';
 import { supabase } from '@/app/lib/supabase';
+import { GardenerBubble } from '@/components/gardener-bubble';
 import { PlantSparkles } from '@/components/plant-sparkles';
 import { appStyles } from '@/styles/styles';
 
@@ -35,6 +38,7 @@ export default function MyPlant() {
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const [sparklePlayKey, setSparklePlayKey] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isGardenerOpen, setIsGardenerOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -115,7 +119,6 @@ export default function MyPlant() {
 
   const isNight = timeOfDay === 'night';
   const stage = snapshot ? getPlantStage(snapshot.completedTaskCount) : 0;
-  const nextThreshold = snapshot ? getNextGrowthThreshold(snapshot.completedTaskCount) : null;
   const foregroundColor = isNight ? '#FCF9ED' : '#37423D';
 
   return (
@@ -131,25 +134,38 @@ export default function MyPlant() {
           <Text style={[appStyles.myPlantSubtitle, { color: foregroundColor }]}>Every little act of care helps it grow.</Text>
 
           {snapshot && (
-            <View style={appStyles.myPlantProgressPill}>
-              {nextThreshold === null ? (
-                <>
-                  <Text style={appStyles.myPlantProgressTitle}>Fully grown 🌸</Text>
-                  <Text style={appStyles.myPlantProgressText}>
-                    You’ve helped your cactus reach its final stage.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={appStyles.myPlantProgressTitle}>
-                    {snapshot.completedTaskCount} / {nextThreshold} acts of care
-                  </Text>
-                  <Text style={appStyles.myPlantProgressText}>
-                    {nextThreshold - snapshot.completedTaskCount} more until your cactus grows.
-                  </Text>
-                </>
-              )}
-            </View>
+            isGardenerOpen ? (
+              <View style={appStyles.myPlantGardenerPanel}>
+                <GardenerBubble
+                  avatarSource={getGardenerById(snapshot.gardenerId).image}
+                  title="A little note from your Gardener"
+                  message={getPlantCareMotivation(snapshot.latestActivity)}
+                  style={appStyles.myPlantGardenerBubble}
+                />
+                <Pressable
+                  accessibilityLabel="Collapse Gardener"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => setIsGardenerOpen(false)}
+                  style={appStyles.myPlantGardenerCloseButton}
+                >
+                  <X color="#37423D" size={18} strokeWidth={2} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityLabel="Open Gardener"
+                accessibilityRole="button"
+                onPress={() => setIsGardenerOpen(true)}
+                style={appStyles.myPlantGardenerIconButton}
+              >
+                <Image
+                  source={getGardenerById(snapshot.gardenerId).image}
+                  style={appStyles.myPlantGardenerIcon}
+                  accessibilityLabel="Gardener"
+                />
+              </Pressable>
+            )
           )}
         </View>
 

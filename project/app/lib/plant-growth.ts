@@ -1,11 +1,11 @@
 export type PlantStage = 0 | 0.5 | 1 | 2 | 3 | 4;
 
 const GROWTH_THRESHOLDS = [
-  { minimum: 200, stage: 4 },
-  { minimum: 150, stage: 3 },
-  { minimum: 100, stage: 2 },
-  { minimum: 50, stage: 1 },
-  { minimum: 20, stage: 0.5 },
+  { minimum: 250, stage: 4 },
+  { minimum: 200, stage: 3 },
+  { minimum: 150, stage: 2 },
+  { minimum: 100, stage: 1 },
+  { minimum: 30, stage: 0.5 },
   { minimum: 0, stage: 0 },
 ] as const satisfies readonly { minimum: number; stage: PlantStage }[];
 
@@ -22,5 +22,5 @@ export function getNextGrowthThreshold(completedTasks: number): number | null {
     ? Math.max(0, Math.floor(completedTasks))
     : 0;
 
-  return [20, 50, 100, 150, 200].find((threshold) => safeCompletedTasks < threshold) ?? null;
+  return [30, 100, 150, 200, 250].find((threshold) => safeCompletedTasks < threshold) ?? null;
 }
