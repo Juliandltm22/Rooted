@@ -16,11 +16,11 @@
 
 ## What is Rooted ?
 
-Rooted is a wellness app inspired by *Pou*, expect instead of feeding a virtual alien, you're keeping a virtual plant alive by taking care of yourself.
+Rooted is a wellness app inspired by *Pou*, except instead of feeding a virtual alien, you're keeping a virtual plant alive by taking care of yourself.
 
 The twist: Every stat your plant needs mirrors something *you* need too. Drink water, sleep well, breathe, reflect and your plant grows right alongside you. Neglect yourself and your plant will let you know.
 
-> No fake in-app curreny. No timers begging you to come back. Just you, a plant and real habits.
+> No fake in-app currency. No timers begging you to come back. Just you, a plant and real habits.
 
 ## How it works
 
@@ -33,22 +33,22 @@ Your plant has four core needs, each mapped to a real wellness habit:
 | 🌾 **Soil Quality** | Sleep | Track hours of sleep per night |
 | 🌬️ **Fresh Air** | Meditation & Movement | Breathing exercises & stretches |
 
-The healthier your habits, the healtheier and bigger your plant grows. Growth isn't just about *doing* the activity once; **consistency is the real fertilizer.** Sporadic care leads to slow, wilting growth. Steady daily habits lead to a thirving, blooming plant over time.
+The healthier your habits, the healthier and bigger your plant grows. Growth isn't just about *doing* the activity once; **consistency is the real fertilizer.** Sporadic care leads to slow, wilting growth. Steady daily habits lead to a thriving, blooming plant over time.
 
 ---
 
 ## Meet the Gardener
 
-Every good plant needs a gardner; someone who hknows what it needs, even when you don't.
+Every good plant needs a gardener; someone who knows what it needs, even when you don't.
 
-The **Gardener** is our apps built-in AI companion. It:
+The **Gardener** is our app's built-in AI companion. It:
 
 - Checks in and asks how you're feeling
 - Reads your recent habits
-- Recommends a next best action like a breathing exercise, a reminder to drink water, and affirmation, or just rest
+- Recommends a next best action like a breathing exercise, a reminder to drink water, an affirmation, or just rest
 - Frames every suggestion through the lens of *"What does the plant need right now?"*
 
-Its less of "AI chatbot" and more **a caring plant parent giving you advice.**
+It's less of "AI chatbot" and more **a caring plant parent giving you advice.**
 
 ---
 
