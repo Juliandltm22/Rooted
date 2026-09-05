@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useNavigation } from 'expo-router/react-navigation';
 import { ArrowRight, Check, Droplets, Heart, Leaf, Moon, PersonStanding, RefreshCw, Sparkles, Wind } from 'lucide-react-native';
 import { appStyles } from '@/styles/styles';
 import { generateGardenPlan, getGuidedActivityConfig, isGuidedGardenTask, type GardenTask, type GardenTaskCategory } from '@/app/lib/garden-plan';
+import { GardenerBubble } from '@/components/gardener-bubble';
 import { useCareResponses } from './care-responses';
+import { DEFAULT_GARDENER_ID, fetchSelectedGardenerId, getGardenerById, type GardenerId } from '@/app/lib/gardener';
+import { fetchProfileFields } from '@/app/lib/profile';
 
 const taskIcons: Record<GardenTaskCategory, typeof Droplets> = {
   calm: Wind,
@@ -45,8 +49,11 @@ export default function Agent() {
     simulateNextDayForDevelopment,
   } = useCareResponses();
   const plan = gardenPlan;
+  const navigation = useNavigation();
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
+  const [profileName, setProfileName] = useState('');
+  const [selectedGardenerId, setSelectedGardenerId] = useState<GardenerId>(DEFAULT_GARDENER_ID);
   const pulse = useRef(new Animated.Value(0)).current;
   const isMounted = useRef(true);
   const generationId = useRef(0);
@@ -172,6 +179,53 @@ export default function Agent() {
     }, [ensureCurrentDay]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const [gardenerId, profileFields] = await Promise.all([
+          fetchSelectedGardenerId(),
+          fetchProfileFields(),
+        ]);
+
+        if (isActive) {
+          setSelectedGardenerId(gardenerId);
+          setProfileName(profileFields.name);
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
+
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: !isGenerating });
+  }, [isGenerating, navigation]);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, [isGenerating]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      if (!isGenerating) {
+        return;
+      }
+
+      event.preventDefault();
+    });
+
+    return unsubscribe;
+  }, [isGenerating, navigation]);
+
   useEffect(() => {
     if (!isGenerating) {
       pulse.stopAnimation();
@@ -198,11 +252,13 @@ export default function Agent() {
             { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
           ]}
         >
-          <Image
-            source={require('@/assets/images/farmer-respira.png')}
-            style={appStyles.agentLoadingImage}
-            resizeMode="contain"
-          />
+          <View style={appStyles.agentLoadingImageClip}>
+            <Image
+              source={getGardenerById(selectedGardenerId).image}
+              style={appStyles.agentLoadingImage}
+              resizeMode="cover"
+            />
+          </View>
         </Animated.View>
         <Text style={appStyles.agentLoadingTitle}>Your Gardener is tending to your plan...</Text>
         <Text style={appStyles.agentLoadingText}>We are choosing a few gentle actions for the day ahead.</Text>
@@ -215,7 +271,7 @@ export default function Agent() {
     return (
       <View style={appStyles.agentErrorScreen}>
         <Image
-          source={require('@/assets/images/farmer-respira.png')}
+          source={getGardenerById(selectedGardenerId).farmerImage}
           style={appStyles.agentErrorImage}
           resizeMode="contain"
         />
@@ -245,17 +301,11 @@ export default function Agent() {
   return (
     <View style={appStyles.agentPlanScreen}>
       <ScrollView contentContainerStyle={appStyles.agentPlanContent} showsVerticalScrollIndicator={false}>
-        <View style={appStyles.agentPlanGreeting}>
-          <Image
-            source={require('@/assets/images/farmer-respira.png')} // Should make this this align with user pfp
-            style={appStyles.agentPlanAvatar}
-            resizeMode="contain"
-          />
-          <View style={appStyles.agentPlanGreetingText}>
-            <Text style={appStyles.agentPlanGreetingTitle}>Thank you for sharing, Julian.</Text>
-            <Text style={appStyles.agentPlanGreetingBody}>{plan.encouragement}</Text>
-          </View>
-        </View>
+        <GardenerBubble
+          avatarSource={getGardenerById(selectedGardenerId).image}
+          title={`Thank you for sharing${profileName ? `, ${profileName}` : ''}.`}
+          message={plan.encouragement}
+        />
 
         <View style={appStyles.agentPlanHeader}>
           <Sparkles color="#607950" size={24} strokeWidth={1.7} />
@@ -280,7 +330,7 @@ export default function Agent() {
             <GardenTaskCard
               key={gardenTask.id}
               gardenTask={gardenTask}
-              onToggle={() => toggleTaskCompletion(gardenTask.id)}
+              onToggle={() => { void toggleTaskCompletion(gardenTask.id); }}
               onStart={() => router.push({ pathname: '/care/session/[id]', params: { id: gardenTask.id } })}
             />
           ))}

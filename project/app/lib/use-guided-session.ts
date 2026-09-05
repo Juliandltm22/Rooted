@@ -7,10 +7,6 @@ interface UseGuidedSessionOptions {
   onComplete: () => void;
 }
 
-/**
- * A wall-clock session engine. Audio can buffer, fail, or be muted without
- * affecting the elapsed time or completion state.
- */
 export function useGuidedSession({ durationSeconds, onComplete }: UseGuidedSessionOptions) {
   const [status, setStatus] = useState<GuidedSessionStatus>('ready');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);

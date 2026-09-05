@@ -4,7 +4,7 @@ export const appStyles = StyleSheet.create({
 
   container: {
     marginTop: 40,
-    padding: 12, 
+    padding: 12,
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -23,21 +23,33 @@ export const appStyles = StyleSheet.create({
   titleHeadline1: {
     fontFamily: 'Caveat-Regular',
     fontSize: 40,
+    lineHeight: 52,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     color: '#37423D',
   },
   titleHeadline2: {
     fontFamily: 'Caveat-Regular',
     fontSize: 34,
+    lineHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     color: '#37423D',
   },
   titleHeadline3: {
     fontFamily: 'Caveat-Regular',
     fontSize: 28,
+    lineHeight: 36,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     color: '#37423D',
   },
   titleHeadline4: {
     fontFamily: 'Caveat-Regular',
     fontSize: 18,
+    lineHeight: 26,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     color: '#37423D',
   },
   titleParagraph: {
@@ -243,12 +255,17 @@ export const appStyles = StyleSheet.create({
     backgroundColor: '#899878',
     marginTop: 71,
   },
-  profileCircleImage: {
+  profileCircleImageClip: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
     marginTop: 71,
+  },
+  profileCircleImage: {
+    width: '100%',
+    height: '100%',
   },
   profileCircle2: {
     width: 150,
@@ -257,11 +274,16 @@ export const appStyles = StyleSheet.create({
     backgroundColor: '#899878',
     // marginTop: 71,
   },
-  profileCircleImage2: {
+  profileCircleImage2Clip: {
     width: 150,
     height: 150,
     borderRadius: 75,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
+  },
+  profileCircleImage2: {
+    width: '100%',
+    height: '100%',
   },
   profileStatusContainer: {
     flexDirection: 'row',
@@ -398,14 +420,64 @@ export const appStyles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    outlineStyle: 'solid',
-    outlineColor: '#37423D',
-    outlineWidth: 1,
+    paddingBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E8E6D7',
+  },
+  speciesOptionAvailable: {
+    backgroundColor: '#DDE7C7',
+    borderColor: '#899878',
+  },
+  speciesOptionComingSoon: {
+    backgroundColor: '#F1EFE3',
+    borderStyle: 'dashed',
+    borderColor: '#B9CCA4',
+    gap: 6,
+  },
+  speciesOptionPressed: {
+    opacity: 0.7,
+  },
+  speciesOptionImage: {
+    width: 128,
+    height: 128,
+  },
+  speciesOptionLabel: {
+    marginTop: 6,
+    color: '#37423D',
+  },
+  speciesOptionComingSoonLabel: {
+    color: '#918E8E',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  potOption: {
+    backgroundColor: '#F1EFE3',
+  },
+  potOptionSelected: {
+    backgroundColor: '#DDE7C7',
+    borderColor: '#899878',
+  },
+  potPreviewContainer: {
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  potPreviewLabel: {
+    color: '#918E8E',
+    letterSpacing: 0.5,
+  },
+  potPreviewImage: {
+    width: 190,
+    height: 190,
+    marginTop: 8,
+  },
+  saveButtonCompact: {
+    width: 200,
+    height: 36,
+    marginTop: 12,
   },
   // ------- Log Out Component -------
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -719,9 +791,15 @@ export const appStyles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 22,
   },
-  agentLoadingImage: {
+  agentLoadingImageClip: {
     width: 170,
     height: 170,
+    borderRadius: 85,
+    overflow: 'hidden',
+  },
+  agentLoadingImage: {
+    width: '100%',
+    height: '100%',
   },
   agentLoadingTitle: {
     fontFamily: 'Caveat-Regular',
@@ -808,11 +886,16 @@ export const appStyles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  agentPlanAvatar: {
+  agentPlanAvatarClip: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    overflow: 'hidden',
     backgroundColor: '#DDE7C7',
+  },
+  agentPlanAvatar: {
+    width: '100%',
+    height: '100%',
   },
   agentPlanGreetingText: {
     flex: 1,
@@ -1024,7 +1107,7 @@ export const appStyles = StyleSheet.create({
   },
   guidedPhaseBlock: {
     alignItems: 'center',
-    minHeight: 46,
+    minHeight: 70,
     marginTop: 4,
   },
   guidedPhaseTitle: {
@@ -1037,6 +1120,54 @@ export const appStyles = StyleSheet.create({
     fontSize: 12,
     color: '#6B716D',
     marginTop: -4,
+  },
+  guidedPhaseCount: {
+    fontFamily: 'Raleway-SemiBold',
+    fontSize: 30,
+    lineHeight: 34,
+    color: '#6B716D',
+    fontVariant: ['tabular-nums'],
+  },
+  guidedGuidanceBlock: {
+    width: '100%',
+    maxWidth: 335,
+    minHeight: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    marginTop: 6,
+  },
+  guidedGuidanceLabel: {
+    fontFamily: 'Raleway-SemiBold',
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: '#918E8E',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  guidedGuidanceText: {
+    fontFamily: 'Raleway-Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#6B716D',
+    textAlign: 'center',
+  },
+  guidedAffirmationText: {
+    maxWidth: 310,
+    fontFamily: 'Caveat-SemiBold',
+    fontSize: 27,
+    lineHeight: 32,
+    color: '#37423D',
+  },
+  guidedPausedText: {
+    fontFamily: 'Raleway-Regular',
+    fontSize: 10,
+    lineHeight: 14,
+    color: '#918E8E',
+    textAlign: 'center',
+    marginTop: 2,
   },
   guidedActivePrompt: {
     minHeight: 46,
@@ -1218,6 +1349,130 @@ export const appStyles = StyleSheet.create({
     fontFamily: 'Raleway-SemiBold',
     fontSize: 14,
     color: '#6B716D',
+  },
+  // -------- MY PLANT PAGE --------
+  myPlantBackground: {
+    flex: 1,
+  },
+  myPlantSafeArea: {
+    flex: 1,
+  },
+  myPlantHeader: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingHorizontal: 22,
+    zIndex: 2,
+  },
+  myPlantTitle: {
+    fontFamily: 'Caveat-Bold',
+    fontSize: 42,
+    lineHeight: 48,
+    textAlign: 'center',
+    textShadowColor: 'rgba(252, 249, 237, 0.72)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  myPlantSubtitle: {
+    fontFamily: 'Raleway-SemiBold',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    textShadowColor: 'rgba(252, 249, 237, 0.82)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  myPlantGardenerBubble: {
+    width: '100%',
+    maxWidth: 350,
+  },
+  myPlantGardenerPanel: {
+    width: '100%',
+    maxWidth: 350,
+    marginTop: 12,
+    position: 'relative',
+  },
+  myPlantGardenerCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+    backgroundColor: 'rgba(252, 249, 237, 0.82)',
+  },
+  myPlantGardenerIconButton: {
+    width: 56,
+    height: 56,
+    marginTop: 14,
+    borderRadius: 28,
+    padding: 3,
+    backgroundColor: 'rgba(252, 249, 237, 0.9)',
+    borderWidth: 1,
+    borderColor: '#E8E6D7',
+    shadowColor: '#37423D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  myPlantGardenerIcon: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
+  },
+  myPlantStage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 112,
+  },
+  myPlantVisual: {
+    width: '100%',
+    maxWidth: 390,
+    height: 430,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  myPlantImage: {
+    width: 340,
+    height: 380,
+  },
+  myPlantImageStageFour: {
+    width: 270,
+    height: 410,
+  },
+  myPlantCenteredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    paddingBottom: 105,
+  },
+  myPlantErrorCard: {
+    width: '100%',
+    maxWidth: 330,
+    alignItems: 'center',
+    padding: 22,
+    borderRadius: 20,
+    backgroundColor: 'rgba(252, 249, 237, 0.94)',
+    borderWidth: 1,
+    borderColor: '#E8E6D7',
+  },
+  myPlantErrorTitle: {
+    fontFamily: 'Caveat-Regular',
+    fontSize: 29,
+    color: '#37423D',
+    textAlign: 'center',
+  },
+  myPlantErrorText: {
+    fontFamily: 'Raleway-Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#6B716D',
+    textAlign: 'center',
+    marginTop: 6,
   },
   // ---------------------------------
 })

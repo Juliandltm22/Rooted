@@ -43,12 +43,20 @@
       "expo-web-browser",
       "expo-asset",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Rooted to use your approximate location to match your plant’s background to local sunrise and sunset."
+        }
+      ],
+      [
         "expo-audio",
         {
           "recordAudioAndroid": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
