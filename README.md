@@ -56,11 +56,9 @@ Its less of "AI chatbot" and more **a caring plant parent giving you advice.**
 
 | Layer | Tool |
 | --- | --- |
-| Framework | **React Native** |
-| Tooling | **Expo** |
-| AI / Gardener logic | *TBA* |
-| Backend / Data | *TBA* |
-| Other SDKs / APIs | *TBA* |
+| Framework | **Expo SDK 54, Expo Router 6, React Native** |
+| AI / Gardener logic | **Google Gemini API, Custom Node.js server** |
+| Backend / Data | **Supabase, AsyncStorage** |
 
 > Stack is still evolving — additional SDKs and APIs will be added as features are built out.
 
